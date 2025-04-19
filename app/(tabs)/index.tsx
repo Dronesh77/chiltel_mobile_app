@@ -16,7 +16,7 @@ import Hero from "@/components/Hero";
 import LatestCollection from '@/components/LatestCollection';
 import BestSeller from '@/components/BestSeller';
 import BestSeller2 from '@/components/BestSeller2';
-import OurPolicy from '@/components/OurPolicy';
+// import OurPolicy from '@/components/OurPolicy';
 import Partner from '@/components/Partner';
 
 // Type definition for navigation
@@ -78,9 +78,9 @@ const Home: React.FC = () => {
           <Partner />
         </View>
 
-        <View className="pb-2">
+        {/* <View className="pb-2">
           <OurPolicy />
-        </View>
+        </View> */}
       </View>
 
       <TouchableOpacity

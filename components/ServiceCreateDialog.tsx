@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, Text, TouchableOpacity, Modal } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { CheckCircle, X } from "lucide-react-native"; // using lucide-react-native for icons
@@ -7,31 +7,31 @@ import { RootStackParamList } from './types'; // import RootStackParamList
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
-const ServiceRequestDialog = () => {
-  const [isVisible, setIsVisible] = useState(true);
+interface ServiceRequestDialogProps {
+  visible: boolean;
+  onClose: () => void;
+}
+
+const ServiceRequestDialog: React.FC<ServiceRequestDialogProps> = ({ visible, onClose }) => {
   const navigation = useNavigation<NavigationProp>(); 
 
-  const closeDialog = () => {
-    setIsVisible(false);
-  };
-
   // const navigateToOrders = () => {
-  //   closeDialog();
+  //   onClose();
   //   navigation.navigate("Orders"); // assumes 'Orders' exists in RootStackParamList
   // };
 
   return (
     <Modal
-      visible={isVisible}
+      visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={closeDialog}
+      onRequestClose={onClose}
     >
       <View className="flex-1 bg-black bg-opacity-50 justify-center items-center px-4">
         <View className="bg-white rounded-2xl shadow-lg w-full max-w-md p-6 relative">
           {/* Close Button */}
           <TouchableOpacity
-            onPress={closeDialog}
+            onPress={onClose}
             className="absolute top-3 right-3 p-1"
             accessibilityLabel="Close"
           >

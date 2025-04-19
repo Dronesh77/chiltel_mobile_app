@@ -1,0 +1,44 @@
+.footer {
+    background-color: #333;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+    flex-wrap: wrap;
+}
+.footer-column {
+    width: 30%;
+    margin-bottom: 20px;
+}
+.footer-column h3 {
+    margin-bottom: 15px;
+}
+.footer-column p,
+.footer-column a {
+    color: #ddd;
+    text-decoration: none;
+    display: block;
+    margin-bottom: 10px;
+}
+.footer-column .social-icons {
+    display: flex;
+    gap: 10px;
+}
+.social-icons a {
+    background-color: #555;
+    padding: 10px;
+    border-radius: 50%;
+    color: #fff;
+    text-align: center;
+    text-decoration: none;
+}
+.search-box input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+}
+.footer-bottom {
+    text-align: center;
+    width: 100%;
+    margin-top: 20px;
+}
