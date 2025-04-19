@@ -128,7 +128,7 @@ const BestSeller2 = () => {
       </View>
 
       {/* Carousel Section */}
-      <View className="bg-gray-500 pt-6">
+      <View className="bg-gray-100 pt-6">
         <ScrollView
           // ref={scrollViewRef}
           horizontal
@@ -180,7 +180,7 @@ const BestSeller2 = () => {
                   </Text>
                   <TouchableOpacity
                     onPress={() => handlePurchase(category.url)}
-                    className="bg-blue-500 py-3 px-6 rounded-lg items-center transition-all duration-200 hover:bg-blue-600"
+                    className="bg-blue-500 py-4 px-6 rounded-lg items-center transition-all duration-200 hover:bg-blue-600"
                   >
                     <Text className="text-white text-base font-medium">Service Now</Text>
                   </TouchableOpacity>
@@ -191,7 +191,7 @@ const BestSeller2 = () => {
         </ScrollView>
 
         {/* Pagination Dots */}
-        <View className="flex-row justify-center mb-6">
+        <View className="flex-row justify-center mb-2">
           {categories.map((_, index) => (
             <TouchableOpacity
               key={`dot-${index}`}
@@ -203,18 +203,6 @@ const BestSeller2 = () => {
           ))}
         </View>
       </View>
-
-      {/* CTA Image Banner */}
-      <TouchableOpacity
-        onPress={() => router.push("/Collection")}
-        className="w-full overflow-hidden rounded-xl my-6 mx-4"
-      >
-        <Image
-          source={require("@/assets/1.png")}
-          className="w-full h-full"
-          resizeMode="cover"
-        />
-      </TouchableOpacity>
     </View>
   );
 };

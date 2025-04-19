@@ -87,24 +87,10 @@ const BestSeller: React.FC = () => {
       url: "/Collection",
     },
   ]; 
-  
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentIndex((prevIndex) => 
-        prevIndex === categories.length - 1 ? 0 : prevIndex + 1
-      );
-      
-      // Auto scroll to the next item
-      if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({
-          x: ((currentIndex + 1) % categories.length) * screenWidth,
-          animated: true,
-        });
-      }
-    }, 3000);
-    
-    return () => clearInterval(timer);
-  }, [categories.length, currentIndex, screenWidth]);
+
+  // const handlePurchase = (url: string) => {
+  //   router.push(url as any);
+  // };
   
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -140,7 +126,7 @@ const BestSeller: React.FC = () => {
       </View>
 
       {/* Carousel Section */}
-      <View className="bg-gray-500 pt-6">
+      <View className="bg-gray-100 pt-6">
         <ScrollView
           // ref={scrollViewRef}
           horizontal
@@ -203,7 +189,7 @@ const BestSeller: React.FC = () => {
         </ScrollView>
 
         {/* Pagination Dots */}
-        <View className="flex-row justify-center mb-6">
+        <View className="flex-row justify-center mb-2">
           {categories.map((_, index) => (
             <TouchableOpacity
               key={`dot-${index}`}
@@ -215,18 +201,6 @@ const BestSeller: React.FC = () => {
           ))}
         </View>
       </View>
-
-      {/* CTA Image Banner */}
-      <TouchableOpacity
-        onPress={() => router.push("/Collection")}
-        className="w-full overflow-hidden rounded-xl my-6 mx-4"
-      >
-        <Image
-          source={require("@/assets/1.png")}
-          className="w-full h-full"
-          resizeMode="cover"
-        />
-      </TouchableOpacity>
     </View>
   );
 };

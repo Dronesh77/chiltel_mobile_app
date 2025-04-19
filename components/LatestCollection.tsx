@@ -111,7 +111,7 @@ const LatestCollection = () => {
       </View>
 
       {/* Carousel Wrapper */}
-      <View className="bg-gray-500 pt-6">
+      <View className="bg-gray-100 pt-6">
         <ScrollView
           // ref={scrollViewRef}
           horizontal
@@ -159,7 +159,7 @@ const LatestCollection = () => {
         </ScrollView>
 
         {/* Pagination Dots */}
-        <View className="flex-row justify-center mb-6"> {/* Reduced margin */}
+        <View className="flex-row justify-center mb-2"> {/* Reduced margin */}
           {categories.map((_, index) => (
             <TouchableOpacity
               key={`dot-${index}`}
@@ -176,12 +176,15 @@ const LatestCollection = () => {
       {/* CTA Image Banner */}
       <TouchableOpacity
         onPress={() => router.push("/Collection")}
-        className="w-full overflow-hidden rounded-xl my-6 mx-4"
+        className="mx-2 h-40 overflow-hidden"
       >
         <Image
           source={require("@/assets/1.png")}
           className="w-full h-full"
-          resizeMode="cover"
+          style={{
+            borderRadius: 24, // Adjust the border radius for roundness (increase for more roundness)
+          }}
+          resizeMode="contain"
         />
       </TouchableOpacity>
     </View>
