@@ -1,0 +1,234 @@
+import React, { useRef, useState, useEffect } from 'react';
+import { View, Text, Image, ScrollView, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import Svg, { Path } from 'react-native-svg';
+import { router } from 'expo-router';
+
+interface Category {
+  name: string;
+  icon: string;
+  image: string;
+  description: string;
+  url: string;
+}
+
+type ImageKey =
+  | "water_cooler"
+  | "upright_chiller"
+  | "geyser"
+  | "microwave"
+  | "refrigerator"
+  | "washing_machine"
+  | "ucounter"
+  | "bbchiler"
+  | "fprep"
+  | "icube";
+
+const images: Record<ImageKey, any> = {
+  water_cooler: require("@/assets/washing_machine.jpeg"),
+  upright_chiller: require("@/assets/microwave.jpeg"),
+  geyser: require("@/assets/geyser.jpg"),
+  microwave: require("@/assets/microwave.jpeg"),
+  refrigerator: require("@/assets/refrigerator.jpeg"),
+  washing_machine: require("@/assets/washing_machine.jpeg"),
+  ucounter: require("@/assets/refrigerator.jpeg"),
+  bbchiler: require("@/assets/geyser.jpg"),
+  fprep: require("@/assets/refrigerator.jpeg"),
+  icube: require("@/assets/washing_machine.jpeg"),
+};
+
+const BestSeller: React.FC = () => {
+  const navigation = useNavigation();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const screenWidth = Dimensions.get('window').width;
+
+  const categories: Category[] = [
+    {
+      name: "Water Cooler",
+      icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
+      image: "water_cooler",
+      description: "Commercial water cooler for professional use",
+      url: "/Collection",
+    },
+    {
+      name: "Upright Chiller",
+      icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547",
+      image: "upright_chiller",
+      description: "Professional upright chiller for commercial use",
+      url: "/Collection",
+    },
+    {
+      name: "Under Counter",
+      icon: "M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z",
+      image: "ucounter",
+      description: "Space-saving under counter chiller",
+      url: "/Collection",
+    },
+    {
+      name: "Back Bar Chiller",
+      icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4",
+      image: "bbchiler",
+      description: "Efficient back bar chiller for beverages",
+      url: "/Collection",
+    },
+    {
+      name: "Food Prep Chiller",
+      icon: "M7 2v11m0 0a2 2 0 104 0m-4 0a2 2 0 114 0m5-11v11m0 0a2 2 0 104 0m-4 0a2 2 0 114 0",
+      image: "fprep",
+      description: "Food preparation chiller for professional kitchens",
+      url: "/Collection",
+    },
+    {
+      name: "Ice Cube",
+      icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4",
+      image: "icube",
+      description: "Commercial ice cube maker",
+      url: "/Collection",
+    },
+  ]; 
+  
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prevIndex) => 
+        prevIndex === categories.length - 1 ? 0 : prevIndex + 1
+      );
+      
+      // Auto scroll to the next item
+      if (scrollViewRef.current) {
+        scrollViewRef.current.scrollTo({
+          x: ((currentIndex + 1) % categories.length) * screenWidth,
+          animated: true,
+        });
+      }
+    }, 3000);
+    
+    return () => clearInterval(timer);
+  }, [categories.length, currentIndex, screenWidth]);
+  
+  const handleScroll = (event: any) => {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / screenWidth);
+    setCurrentIndex(index % categories.length);
+  };
+  
+  const scrollToCard = (index: number) => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({
+        x: index * screenWidth,
+        animated: true,
+      });
+    }
+  };
+  
+  const handlePurchase = (url: any) => {
+    router.push(url);
+  };
+  
+  return (
+    <View className="flex-1 bg-gray-50">
+      {/* Heading Section */}
+      <View className="items-center mt-6 mb-4 px-4">
+        <Text className="text-2xl font-bold text-center text-gray-900">
+          <Text className="text-gray-600">KITCHEN</Text>{" "}
+          <Text className="text-gray-900">APPLIANCES</Text>
+        </Text>
+        <View className="w-16 h-1 bg-blue-500 my-2" />
+        <Text className="text-gray-500 text-center">
+          Professional kitchen equipment for commercial and industrial use.
+        </Text>
+      </View>
+
+      {/* Carousel Section */}
+      <View className="bg-gray-500 pt-6">
+        <ScrollView
+          // ref={scrollViewRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={screenWidth}
+          decelerationRate="fast"
+          onMomentumScrollEnd={handleScroll}
+        >
+          {categories.map((category, i) => (
+            <View 
+              // key={`category-${i}`} 
+              style={{ width: screenWidth }} className="px-4"
+            >
+              <View className="bg-white rounded-xl shadow-lg overflow-hidden mb-1">
+                <TouchableOpacity onPress={() => handlePurchase(category.url)} className="h-60 relative">
+                  <Image
+                    source={images[category.image as ImageKey]}
+                    className="w-full h-full"
+                    resizeMode="cover"
+                    defaultSource={{ uri: "https://via.placeholder.com/300" }}
+                  />
+                  {/* <View className="absolute inset-0 items-center justify-center">
+                    <View className="p-2 rounded-lg bg-white bg-opacity-20">
+                      <Svg
+                        width={32}
+                        height={32}
+                        viewBox="0 0 24 24"
+                        stroke="white"
+                        fill="none"
+                      >
+                        <Path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d={category.icon}
+                        />
+                      </Svg>
+                    </View>
+                  </View> */}
+                </TouchableOpacity> 
+
+                <View className="p-4">
+                  <Text className="text-xl font-semibold text-gray-900 mb-2">
+                    {category.name}
+                  </Text>
+                  <Text className="text-sm text-gray-600 mb-4">
+                    {category.description}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handlePurchase(category.url)}
+                    className="bg-blue-500 py-3 px-6 rounded-lg items-center transition-all duration-200 hover:bg-blue-600"
+                  >
+                    <Text className="text-white text-base font-medium">Service Now</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* Pagination Dots */}
+        <View className="flex-row justify-center mb-6">
+          {categories.map((_, index) => (
+            <TouchableOpacity
+              key={`dot-${index}`}
+              onPress={() => scrollToCard(index)}
+              className={`h-2 w-2 rounded-full mx-1 ${
+                index === currentIndex % categories.length ? 'bg-blue-600' : 'bg-gray-400'
+              }`}
+            />
+          ))}
+        </View>
+      </View>
+
+      {/* CTA Image Banner */}
+      <TouchableOpacity
+        onPress={() => router.push("/Collection")}
+        className="w-full overflow-hidden rounded-xl my-6 mx-4"
+      >
+        <Image
+          source={require("@/assets/1.png")}
+          className="w-full h-full"
+          resizeMode="cover"
+        />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+export default BestSeller;

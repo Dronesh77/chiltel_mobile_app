@@ -1,74 +1,97 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  SafeAreaView,
+  StatusBar
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+// Import components
+import Hero from "@/components/Hero";
+import LatestCollection from '@/components/LatestCollection';
+import BestSeller from '@/components/BestSeller';
+import BestSeller2 from '@/components/BestSeller2';
+import OurPolicy from '@/components/OurPolicy';
+import Partner from '@/components/Partner';
 
-export default function HomeScreen() {
+// Type definition for navigation
+type NavigationProps = {
+  navigate: (screen: string, params?: any) => void;
+};
+
+const Home: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const navigation = useNavigation<NavigationProps>();
+  const scrollViewRef = useRef<ScrollView | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const scrollToTop = () => {
+    if (scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: 0, animated: true });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <View className="flex-1 justify-center items-center bg-white">
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text className="mt-4 text-lg font-semibold text-gray-600">
+          Loading amazing deals...
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
-}
+    <View className="flex-1 bg-white">
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+      {/* Main content container */}
+      <View className="flex-1">
+        {/* Don't use ScrollView here as it's already in the layout */}
+        <View className="pb-2">
+          <Hero />
+        </View>
+
+        <View className="pb-2">
+          <LatestCollection />
+        </View>
+
+        <View className="pb-2">
+          <BestSeller />
+        </View>
+
+        <View className="pb-2">
+          <BestSeller2 />
+        </View>
+
+        <View className="pb-2">
+          <Partner />
+        </View>
+
+        <View className="pb-2">
+          <OurPolicy />
+        </View>
+      </View>
+
+      <TouchableOpacity
+        onPress={scrollToTop}
+        className="absolute bottom-20 right-6 bg-blue-600 w-12 h-12 rounded-full justify-center items-center shadow-lg"
+        activeOpacity={0.8}
+      >
+        <Ionicons name="arrow-up" size={24} color="#ffffff" />
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+export default Home;
