@@ -3,12 +3,10 @@ import axios from "axios";
 import { View, Text, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
-import AuthContext, { useAuth } from "./AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
-// Environment variables
 const BACKEND_URL = 'YOUR_BACKEND_URL';
 
-// Define types
 interface CartItem {
   _id: string;
   itemId: string;
@@ -44,6 +42,7 @@ interface CartContextType {
   fetchCart: () => Promise<void>;
   cartAmount: number;
   cartCount: number;
+  refreshCart: () => Promise<void>;
 }
 
 interface CartProviderProps {
@@ -59,8 +58,62 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [cartCount, setCartCount] = useState<number>(0);
   const [cartLoading, setCartLoading] = useState<boolean>(true);
   
-  const { isAuthenticated, sessionId } = useAuth();
+  const { 
+    isAuthenticated, 
+    sessionId, 
+    checkAuthStatus, 
+    logout 
+  } = useAuth();
   const navigation = useNavigation();
+
+  const handleAuthError = () => {
+    logout();
+    navigation.navigate("Login" as never);
+    Toast.show({
+      type: "error",
+      text1: "Session Expired",
+      text2: "Please login again"
+    });
+  };
+
+  const fetchCart = async (): Promise<void> => {
+    try {
+      setCartLoading(true);
+      if (!isAuthenticated || !sessionId) return;
+
+      const response = await axios.post(
+        `${BACKEND_URL}/api/cart/get`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${sessionId}`,
+          },
+        }
+      );
+      
+      const cartData = response.data.cartData;
+      setCart(cartData);
+      setCartId(cartData._id);
+      setCartAmount(cartData.totalAmount);
+      
+      const totalCount = cartData.items.reduce(
+        (sum: number, item: CartItem) => sum + item.quantity, 0
+      );
+      setCartCount(totalCount);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        handleAuthError();
+      }
+      console.error("Failed to fetch cart:", error);
+    } finally {
+      setCartLoading(false);
+    }
+  };
+
+  const refreshCart = async () => {
+    await checkAuthStatus();
+    await fetchCart();
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -73,106 +126,58 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   }, [isAuthenticated]);
 
-  const fetchCart = async (): Promise<void> => {
+  const addToCart = async (item: any): Promise<void> => {
     try {
-      setCartLoading(true);
+      if (!isAuthenticated || !sessionId) {
+        navigation.navigate("Login" as never);
+        return;
+      }
+
       const response = await axios.post(
-        `${BACKEND_URL}/api/cart/get`,
-        {},
+        `${BACKEND_URL}/api/cart/add`,
+        {
+          itemId: item._id,
+          price: parseFloat((item.price * (1 - item.discount)).toFixed(2)),
+          name: item.name,
+          image: item.thumbnail,
+          category: item.category,
+        },
         {
           headers: {
-            Authorization: sessionId,
+            Authorization: `Bearer ${sessionId}`,
           },
         }
       );
       
-      const cartData = response.data.cartData;
-      setCart(cartData);
-      setCartId(cartData._id);
-      setCartAmount(cartData.totalAmount);
+      const updatedCart = response.data.cart;
+      setCart(updatedCart);
+      setCartId(updatedCart._id);
+      setCartAmount(updatedCart.totalAmount);
       
-      let totalCount = 0;
-      const products = cartData.items;
-      for (let item of products) {
-        totalCount += item.quantity;
-      }
+      const totalCount = updatedCart.items.reduce(
+        (sum: number, item: CartItem) => sum + item.quantity, 0
+      );
       setCartCount(totalCount);
+      
+      Toast.show({
+        type: "success",
+        text1: "Item Added",
+        text2: "Item added to your cart"
+      });
     } catch (error) {
-      console.error("Failed to fetch cart:", error);
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to load your cart. Please try again.",
-      });
-    } finally {
-      setCartLoading(false);
-    }
-  };
-
-  const addToCart = async (item: any): Promise<void> => {
-    if (!isAuthenticated) {
-      navigation.navigate("Login" as never);
-      Toast.show({
-        type: "info",
-        text1: "Authentication Required",
-        text2: "Please log in to add this item to your cart.",
-      });
-    } else {
-      try {
-        const response = await axios.post(
-          `${BACKEND_URL}/api/cart/add`,
-          {
-            itemId: item._id,
-            price: parseFloat((item.price * (1 - item.discount)).toFixed(2)),
-            name: item.name,
-            image: item.thumbnail,
-            category: item.category,
-          },
-          {
-            headers: {
-              Authorization: sessionId,
-            },
-          }
-        );
-        
-        const updatedCart = response.data.cart;
-        setCart(updatedCart);
-        setCartId(updatedCart._id);
-        setCartAmount(updatedCart.totalAmount);
-        
-        let totalCount = 0;
-        const products = updatedCart.items;
-        for (let item of products) {
-          totalCount += item.quantity;
-        }
-        setCartCount(totalCount);
-        
-        Toast.show({
-          type: "success",
-          text1: "Success",
-          text2: "Item added to your cart",
-        });
-      } catch (err) {
-        Toast.show({
-          type: "error",
-          text1: "Error",
-          text2: "Something went wrong. Please try again.",
-        });
-        console.error("Error while adding item to cart: ", err);
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        handleAuthError();
       }
+      console.error("Error adding to cart:", error);
     }
   };
 
-  const removeFromCart = async (itemId: string): Promise<{ 
-    success: boolean, 
-    updatedCart?: Cart, 
-    error?: string 
-  }> => {
+  const removeFromCart = async (itemId: string) => {
     try {
       const response = await axios.post(
         `${BACKEND_URL}/api/cart/remove`,
         { itemId },
-        { headers: { Authorization: sessionId } }
+        { headers: { Authorization: `Bearer ${sessionId}` } }
       );
 
       if (response.status === 200) {
@@ -181,89 +186,50 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         setCartId(cartData._id);
         setCartAmount(cartData.totalAmount);
         
-        let totalCount = 0;
-        const products = cartData.items;
-        for (let item of products) {
-          totalCount += item.quantity;
-        }
+        const totalCount = cartData.items.reduce(
+          (sum: number, item: CartItem) => sum + item.quantity, 0
+        );
         setCartCount(totalCount);
         
-        Toast.show({
-          type: "success",
-          text1: "Success",
-          text2: "Item removed from cart",
-        });
-        
         return { success: true, updatedCart: cartData };
-      } else {
-        throw new Error("Failed to remove item from cart");
       }
+      throw new Error("Failed to remove item");
     } catch (error: any) {
-      console.error("Error removing item from cart:", error.message);
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to remove item from cart",
-      });
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        handleAuthError();
+      }
       return { success: false, error: error.message };
     }
   };
 
-  const updateQuantity = async (itemId: string, quantity: number): Promise<{ 
-    success: boolean, 
-    updatedCart?: Cart, 
-    error?: string 
-  }> => {
+  const updateQuantity = async (itemId: string, quantity: number) => {
     try {
       const response = await axios.post(
         `${BACKEND_URL}/api/cart/update`,
         { itemId, quantity },
-        { headers: { Authorization: sessionId } }
+        { headers: { Authorization: `Bearer ${sessionId}` } }
       );
 
       if (response.status === 200) {
         const updatedCart = response.data.cart;
-        setCartId(updatedCart._id);
+        setCart(updatedCart);
         setCartAmount(updatedCart.totalAmount);
         
-        let totalCount = 0;
-        const products = updatedCart.items;
-        for (let item of products) {
-          totalCount += item.quantity;
-        }
+        const totalCount = updatedCart.items.reduce(
+          (sum: number, item: CartItem) => sum + item.quantity, 0
+        );
         setCartCount(totalCount);
-        setCart(updatedCart);
         
-        return { success: true, updatedCart: updatedCart };
-      } else {
-        throw new Error("Failed to update cart quantity");
+        return { success: true, updatedCart };
       }
+      throw new Error("Failed to update quantity");
     } catch (error: any) {
-      Toast.show({
-        type: "error",
-        text1: "Error",
-        text2: "Failed to update quantity",
-      });
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        handleAuthError();
+      }
       return { success: false, error: error.message };
     }
   };
-
-  // Cart loading state UI
-  if (cartLoading && isAuthenticated) {
-    return (
-      <View className="flex-1 justify-center items-center bg-gray-50">
-        <View className="bg-white p-6 rounded-2xl shadow-md">
-          <ActivityIndicator size="large" color="#3b82f6" />
-          <Text className="mt-4 text-lg font-medium text-gray-800 text-center">
-            Loading your cart
-          </Text>
-          <Text className="mt-2 text-sm text-gray-500 text-center">
-            Please wait while we fetch your items
-          </Text>
-        </View>
-      </View>
-    );
-  }
 
   const value: CartContextType = {
     cart,
@@ -275,17 +241,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     fetchCart,
     cartAmount,
     cartCount,
+    refreshCart
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
 
-export const useCart = (): CartContextType => {
+export const useCart = () => {
   const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart must be used within a CartProvider");
-  }
+  if (!context) throw new Error("useCart must be used within CartProvider");
   return context;
 };
-
-export default CartContext;

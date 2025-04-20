@@ -18,6 +18,7 @@ import BestSeller from '@/components/BestSeller';
 import BestSeller2 from '@/components/BestSeller2';
 // import OurPolicy from '@/components/OurPolicy';
 import Partner from '@/components/Partner';
+import OurPolicy from '@/components/OurPolicy';
 
 // Type definition for navigation
 type NavigationProps = {
@@ -78,9 +79,9 @@ const Home: React.FC = () => {
           <Partner />
         </View>
 
-        {/* <View className="pb-2">
+        <View className="pb-2">
           <OurPolicy />
-        </View> */}
+        </View>
       </View>
 
       <TouchableOpacity

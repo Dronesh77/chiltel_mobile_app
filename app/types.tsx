@@ -9,11 +9,16 @@ export type RootStackParamList = {
   BlogPost: { id: string };
   Cart: undefined;
   Contact: undefined;
+  ProductListing: { 
+    product: Product;
+    category?: string;
+  };
   Product: { productId: string };
   Login: undefined;
   PlaceOrder: undefined;
   BuyNow: undefined;
   Orders: undefined;
+  chillmart:Product;
   OrderSuccess: { orderId: string };
   Verify: { token: string };
   ServiceCollection: undefined;
@@ -118,6 +123,18 @@ export interface Service {
   duration?: string;
 }
 
+
+// In types.tsx
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  image: string;
+  category: string;  // Ensure this exists
+  inStock: boolean;
+}
+
 // Form error type
 export type FormErrors<T> = {
   [K in keyof T]?: string;
@@ -129,4 +146,15 @@ export interface ApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
-}
+};
+
+// Add this after all your interfaces
+export type ChillMartScreenNavigationProp = StackNavigationProp<
+  RootStackParamList, 
+  'chillmart'
+>;
+
+export type ProductListingScreenRouteProp = RouteProp<
+  RootStackParamList, 
+  'ProductListing'
+>;
