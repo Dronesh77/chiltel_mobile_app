@@ -8,20 +8,25 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
-  Dimensions
+  Dimensions,
+  Alert
 } from 'react-native';
-import { allCategories, categoryImageMap } from '../../components/categoriesData';
+import { allCategories, categoryImageMap } from '@/components/categoriesData';
 import ServiceModel from './ServiceModel';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList, ChillMartScreenNavigationProp } from '../types';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2;
 
-type ChillMartScreenProps = NativeStackScreenProps<RootStackParamList, 'chillmart'>;
+type ChillMartScreenProps = {
+  navigation: ChillMartScreenNavigationProp;
+};
 
-
-const ChillMart = ({ navigation }: ChillMartScreenProps) => {
+const ChillMart = () => {
+  // Use the useNavigation hook to get navigation object
+  const navigation = useNavigation<ChillMartScreenNavigationProp>();
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<any[]>([]);
@@ -90,6 +95,29 @@ const ChillMart = ({ navigation }: ChillMartScreenProps) => {
   const handleServiceBook = () => {
     setServiceModalVisible(false);
     setSelectedCategory(null);
+  };
+
+  const handleNavigateToProductListing = (item: any) => {
+    // Check if item.category exists, otherwise use item.name as a fallback
+    const categoryParam = item.category || item.name;
+    
+    // Debug log to help troubleshoot navigation issues
+    console.log('Navigating to ProductListing with category:', categoryParam);
+    
+    try {
+      if (navigation) {
+        // Navigate with required params according to your type definitions
+        navigation.navigate('ProductListing', {
+          category: categoryParam
+        });
+      } else {
+        console.error('Navigation object is undefined');
+        Alert.alert('Navigation Error', 'Unable to navigate to product listing. Please try again.');
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      Alert.alert('Navigation Error', 'Something went wrong. Please try again.');
+    }
   };
 
   if (loading) {
@@ -222,17 +250,7 @@ const ChillMart = ({ navigation }: ChillMartScreenProps) => {
               <View style={styles.buttonContainer}>
                 <TouchableOpacity
                   style={styles.purchaseButton}
-                  onPress={() => navigation.navigate('ProductListing', {
-                    product: {
-                      id: item.id,
-                      name: item.name,
-                      price: item.price,
-                      description: item.description,
-                      image: item.image,
-                      category: item.category,
-                      inStock: true
-                    }
-                  })}
+                  onPress={() => handleNavigateToProductListing(item)}
                 >
                   <Text style={styles.purchaseButtonText}>Buy</Text>
                 </TouchableOpacity>

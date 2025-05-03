@@ -25,16 +25,16 @@ type ImageKey =
   | "icube";
 
 const images: Record<ImageKey, any> = {
-  water_cooler: require("@/assets/washing_machine.jpeg"),
+  water_cooler: require("@/assets/water_cooler.jpeg"),
   upright_chiller: require("@/assets/microwave.jpeg"),
-  geyser: require("@/assets/geyser.jpg"),
+  geyser: require("@/assets/geyser.jpeg"),
   microwave: require("@/assets/microwave.jpeg"),
   refrigerator: require("@/assets/refrigerator.jpeg"),
   washing_machine: require("@/assets/washing_machine.jpeg"),
-  ucounter: require("@/assets/refrigerator.jpeg"),
-  bbchiler: require("@/assets/geyser.jpg"),
-  fprep: require("@/assets/refrigerator.jpeg"),
-  icube: require("@/assets/washing_machine.jpeg"),
+  ucounter: require("@/assets/upright_chiller.jpeg"),
+  bbchiler: require("@/assets/back_bar_chiller.jpeg"),
+  fprep: require("@/assets/food_prep_chiller.jpeg"),
+  icube: require("@/assets/ice_maker.jpeg"),
 };
 
 const BestSeller: React.FC = () => {
@@ -88,10 +88,6 @@ const BestSeller: React.FC = () => {
     },
   ]; 
 
-  // const handlePurchase = (url: string) => {
-  //   router.push(url as any);
-  // };
-  
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / screenWidth);
@@ -128,7 +124,6 @@ const BestSeller: React.FC = () => {
       {/* Carousel Section */}
       <View className="bg-gray-100 pt-6">
         <ScrollView
-          // ref={scrollViewRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
@@ -138,8 +133,8 @@ const BestSeller: React.FC = () => {
         >
           {categories.map((category, i) => (
             <View 
-              // key={`category-${i}`} 
-              style={{ width: screenWidth }} className="px-4"
+              style={{ width: screenWidth }} 
+              className="px-4"
             >
               <View className="bg-white rounded-xl shadow-lg overflow-hidden mb-1">
                 <TouchableOpacity onPress={() => handlePurchase(category.url)} className="h-60 relative">
@@ -149,24 +144,6 @@ const BestSeller: React.FC = () => {
                     resizeMode="cover"
                     defaultSource={{ uri: "https://via.placeholder.com/300" }}
                   />
-                  {/* <View className="absolute inset-0 items-center justify-center">
-                    <View className="p-2 rounded-lg bg-white bg-opacity-20">
-                      <Svg
-                        width={32}
-                        height={32}
-                        viewBox="0 0 24 24"
-                        stroke="white"
-                        fill="none"
-                      >
-                        <Path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d={category.icon}
-                        />
-                      </Svg>
-                    </View>
-                  </View> */}
                 </TouchableOpacity> 
 
                 <View className="p-4">

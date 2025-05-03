@@ -24,7 +24,7 @@ type ImageKey =
 const images: Record<string, any> = {
   deep_freeze: require("@/assets/air_conditioner.jpeg"),
   visi_cooler: require("@/assets/water_purifier.jpeg"),
-  cassette_ac: require("@/assets/geyser.jpg"),
+  cassette_ac: require("@/assets/geyser.jpeg"),
   water_cooler: require("@/assets/microwave.jpeg"),
   water_dispenser: require("@/assets/refrigerator.jpeg"),
   display_counter: require("@/assets/washing_machine.jpeg"),
@@ -123,14 +123,13 @@ const BestSeller2 = () => {
         </Text>
         <View className="w-16 h-1 bg-blue-500 my-2" />
         <Text className="text-gray-500 text-center">
-        Discover a wide range of retail appliances available for booking.
+          Discover a wide range of retail appliances available for booking.
         </Text>
       </View>
 
       {/* Carousel Section */}
       <View className="bg-gray-100 pt-6">
         <ScrollView
-          // ref={scrollViewRef}
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
@@ -140,8 +139,8 @@ const BestSeller2 = () => {
         >
           {categories.map((category, i) => (
             <View 
-              // key={`category-${i}`} 
-              style={{ width: screenWidth }} className="px-4"
+              style={{ width: screenWidth }} 
+              className="px-4"
             >
               <View className="bg-white rounded-xl shadow-lg overflow-hidden mb-1">
                 <TouchableOpacity onPress={() => handlePurchase(category.url)} className="h-60 relative">
@@ -151,24 +150,6 @@ const BestSeller2 = () => {
                     resizeMode="cover"
                     defaultSource={{ uri: "https://via.placeholder.com/300" }}
                   />
-                  {/* <View className="absolute inset-0 items-center justify-center">
-                    <View className="p-2 rounded-lg bg-white bg-opacity-20">
-                      <Svg
-                        width={32}
-                        height={32}
-                        viewBox="0 0 24 24"
-                        stroke="white"
-                        fill="none"
-                      >
-                        <Path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d={category.icon}
-                        />
-                      </Svg>
-                    </View>
-                  </View> */}
                 </TouchableOpacity> 
 
                 <View className="p-4">

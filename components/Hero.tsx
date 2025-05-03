@@ -107,7 +107,7 @@ const Hero: React.FC = () => {
             ...category,
             resultType: 'service',
             displayText: `${category.name} (Service)`,
-            url: 'collection',
+            url: 'chillMart',
           },
         ]);
 
@@ -148,7 +148,7 @@ const Hero: React.FC = () => {
   const renderCategoryItem = ({ item }: ListRenderItemInfo<Category>): React.ReactElement => (
     <TouchableOpacity
       className={`${screenWidth < 640 ? 'w-[48%]' : screenWidth < 768 ? 'w-[30%]' : 'w-1/4'} mb-4`}
-      onPress={() => navigation.navigate('Collection')}
+      onPress={() => navigation.navigate('chillMart')}
       activeOpacity={0.7}
     >
       <View className="w-full h-24 bg-gray-100 rounded-lg overflow-hidden">

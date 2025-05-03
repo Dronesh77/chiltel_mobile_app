@@ -10,7 +10,6 @@ export type RootStackParamList = {
   Cart: undefined;
   Contact: undefined;
   ProductListing: { 
-    product: Product;
     category?: string;
   };
   Product: { productId: string };
@@ -124,16 +123,16 @@ export interface Service {
 }
 
 
-// In types.tsx
-export interface Product {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  image: string;
-  category: string;  // Ensure this exists
-  inStock: boolean;
-}
+// // In types.tsx
+// export interface Product {
+//   id: string;
+//   name: string;
+//   price: number;
+//   description: string;
+//   image: string;
+//   category: string;  // Ensure this exists
+//   inStock: boolean;
+// }
 
 // Form error type
 export type FormErrors<T> = {

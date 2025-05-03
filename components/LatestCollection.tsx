@@ -22,7 +22,7 @@ type ImageKey =
 const images: Record<ImageKey, any> = {
   air_conditioner: require("@/assets/air_conditioner.jpeg"),
   water_purifier: require("@/assets/water_purifier.jpeg"),
-  geyser: require("@/assets/geyser.jpg"),
+  geyser: require("@/assets/geyser.jpeg"),
   microwave: require("@/assets/microwave.jpeg"),
   refrigerator: require("@/assets/refrigerator.jpeg"),
   washing_machine: require("@/assets/washing_machine.jpeg"),
