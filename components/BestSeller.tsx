@@ -31,7 +31,7 @@ const images: Record<ImageKey, any> = {
   microwave: require("@/assets/microwave.jpeg"),
   refrigerator: require("@/assets/refrigerator.jpeg"),
   washing_machine: require("@/assets/washing_machine.jpeg"),
-  ucounter: require("@/assets/upright_chiller.jpeg"),
+  ucounter: require("@/assets/under_counter.jpeg"),
   bbchiler: require("@/assets/back_bar_chiller.jpeg"),
   fprep: require("@/assets/food_prep_chiller.jpeg"),
   icube: require("@/assets/ice_maker.jpeg"),
@@ -49,42 +49,42 @@ const BestSeller: React.FC = () => {
       icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4",
       image: "water_cooler",
       description: "Commercial water cooler for professional use",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Upright Chiller",
       icon: "M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547",
       image: "upright_chiller",
       description: "Professional upright chiller for commercial use",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Under Counter",
       icon: "M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z",
       image: "ucounter",
       description: "Space-saving under counter chiller",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Back Bar Chiller",
       icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4",
       image: "bbchiler",
       description: "Efficient back bar chiller for beverages",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Food Prep Chiller",
       icon: "M7 2v11m0 0a2 2 0 104 0m-4 0a2 2 0 114 0m5-11v11m0 0a2 2 0 104 0m-4 0a2 2 0 114 0",
       image: "fprep",
       description: "Food preparation chiller for professional kitchens",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Ice Cube",
       icon: "M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4",
       image: "icube",
       description: "Commercial ice cube maker",
-      url: "/Collection",
+      url: "/chillMart",
     },
   ]; 
 
@@ -141,7 +141,7 @@ const BestSeller: React.FC = () => {
                   <Image
                     source={images[category.image as ImageKey]}
                     className="w-full h-full"
-                    resizeMode="cover"
+                    resizeMode="contain"
                     defaultSource={{ uri: "https://via.placeholder.com/300" }}
                   />
                 </TouchableOpacity> 

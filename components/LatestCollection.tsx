@@ -40,38 +40,38 @@ const LatestCollection = () => {
       image: "air_conditioner",
       description:
         "Professional AC services including installation, repair, and maintenance",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Water Purifier",
       image: "water_purifier",
       description:
         "Expert water purifier installation and maintenance services",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Geyser",
       image: "geyser",
       description: "Comprehensive geyser repair and installation services",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Microwave",
       image: "microwave",
       description: "Expert microwave repair and maintenance services",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Refrigerator",
       image: "refrigerator",
       description: "Professional refrigerator repair and maintenance services",
-      url: "/Collection",
+      url: "/chillMart",
     },
     {
       name: "Washing Machine",
       image: "washing_machine",
       description: "Expert washing machine repair and maintenance services",
-      url: "/Collection",
+      url: "/chillMart",
     },
   ];
 

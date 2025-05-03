@@ -35,6 +35,7 @@ export interface Category {
 export type RootStackParamList = {
   Home: undefined;
   ProductList: { category: string };
+  ProductListing: { category: string };
   ProductDetail: { productId: string };
   Cart: undefined;
   Profile: undefined;

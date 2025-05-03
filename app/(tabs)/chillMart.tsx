@@ -13,20 +13,12 @@ import {
 } from 'react-native';
 import { allCategories, categoryImageMap } from '@/components/categoriesData';
 import ServiceModel from './ServiceModel';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList, ChillMartScreenNavigationProp } from '../types';
-import { useNavigation } from '@react-navigation/native';
+import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2;
 
-type ChillMartScreenProps = {
-  navigation: ChillMartScreenNavigationProp;
-};
-
 const ChillMart = () => {
-  // Use the useNavigation hook to get navigation object
-  const navigation = useNavigation<ChillMartScreenNavigationProp>();
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<any[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<any[]>([]);
@@ -98,22 +90,17 @@ const ChillMart = () => {
   };
 
   const handleNavigateToProductListing = (item: any) => {
-    // Check if item.category exists, otherwise use item.name as a fallback
+    // Use item.category if it exists, otherwise use item.name as a fallback
     const categoryParam = item.category || item.name;
     
     // Debug log to help troubleshoot navigation issues
     console.log('Navigating to ProductListing with category:', categoryParam);
     
     try {
-      if (navigation) {
-        // Navigate with required params according to your type definitions
-        navigation.navigate('ProductListing', {
-          category: categoryParam
-        });
-      } else {
-        console.error('Navigation object is undefined');
-        Alert.alert('Navigation Error', 'Unable to navigate to product listing. Please try again.');
-      }
+      router.push({
+        pathname: '/ProductListing',
+        params: { category: categoryParam }
+      });
     } catch (error) {
       console.error('Navigation error:', error);
       Alert.alert('Navigation Error', 'Something went wrong. Please try again.');

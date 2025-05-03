@@ -19,6 +19,7 @@ import BestSeller2 from '@/components/BestSeller2';
 // import OurPolicy from '@/components/OurPolicy';
 import Partner from '@/components/Partner';
 import OurPolicy from '@/components/OurPolicy';
+import Footer from '@/components/Footer';
 
 // Type definition for navigation
 type NavigationProps = {
@@ -55,7 +56,7 @@ const Home: React.FC = () => {
   return (
     <View className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-
+      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{minHeight: "100%", paddingBottom: 10}}>
       {/* Main content container */}
       <View className="flex-1">
         {/* Don't use ScrollView here as it's already in the layout */}
@@ -82,6 +83,11 @@ const Home: React.FC = () => {
         <View className="pb-2">
           <OurPolicy />
         </View>
+
+        <View>
+          <Footer />
+        </View>
+        
       </View>
 
       <TouchableOpacity
@@ -91,6 +97,7 @@ const Home: React.FC = () => {
       >
         <Ionicons name="arrow-up" size={24} color="#ffffff" />
       </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 };

@@ -11,7 +11,7 @@ import {
   TextInput
 } from 'react-native';
 import axios from 'axios';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useLocalSearchParams } from 'expo-router';
 import { RootStackParamList } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -51,13 +51,15 @@ const priceRanges = [
   { label: "Above ₹50,000", min: 50000, max: Infinity },
 ];
 
-type ProductListingProps = NativeStackScreenProps<RootStackParamList, 'ProductListing'>;
-
-const ProductListing = ({ route, navigation }: ProductListingProps) => {
-  // Add default value for category if route.params is undefined
-  // console.log('Route params:', route.params);
-  const category = route?.params?.category || 'All Products';
-  const [loading, setLoading] = useState(true);
+const ProductListing = () => {
+  const { category } = useLocalSearchParams<{ category: string }>();
+  
+  // Add default value for category if params is undefined
+  console.log('Route params:', category);
+  const categoryParam = category || 'All Products';
+  console.log('Using category:', categoryParam);
+  
+  const [loading, setLoading] = useState(true);  
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [expandedFeatures, setExpandedFeatures] = useState<Record<string, boolean>>({});
@@ -78,19 +80,21 @@ const ProductListing = ({ route, navigation }: ProductListingProps) => {
 
   useEffect(() => {
     fetchProducts();
-  }, [category]);
+  }, [categoryParam]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      console.log('Fetching products for category:', category);
+      console.log('Fetching products for category:', categoryParam);
       
       // First try to fetch all products
       const response = await axios.get(backendUrl + '/api/product/list', 
         {
+          params: {
+            category: categoryParam
+          },
           headers: {
-            'Content-Type': 'application/json',
-            'category': category
+            'Content-Type': 'application/json'
           }
         }
       );
@@ -114,13 +118,13 @@ const ProductListing = ({ route, navigation }: ProductListingProps) => {
       console.log('Total products fetched:', allData.length);
 
       // If category is not 'All Products', filter on client side
-      if (category !== 'All Products') {
+      if (categoryParam !== 'All Products') {
         const filteredData = allData.filter((product: Product) => 
-          product.category?.toLowerCase() === category.toLowerCase() || 
-          product.mainCategory?.toLowerCase() === category.toLowerCase()
+          product.category?.toLowerCase() === categoryParam.toLowerCase() || 
+          product.mainCategory?.toLowerCase() === categoryParam.toLowerCase()
         );
         console.log('Filtered products for category:', filteredData.length);
-        setProducts(allData);
+        setProducts(filteredData);
         setFilteredProducts(filteredData);
       } else {
         setProducts(allData);
@@ -292,7 +296,7 @@ const ProductListing = ({ route, navigation }: ProductListingProps) => {
   return (
     <View className="flex-1 bg-gray-100">
       <View className="bg-blue-600 p-4 pt-5">
-        <Text className="text-xl font-bold text-white">{category}</Text>
+        <Text className="text-xl font-bold text-white">{categoryParam}</Text>
         <Text className="text-sm text-gray-200 mt-1">
           Showing {filteredProducts.length} results
           {filteredProducts.length > 0 && products.length > filteredProducts.length && 
@@ -450,7 +454,6 @@ const ProductListing = ({ route, navigation }: ProductListingProps) => {
             <View className="bg-white rounded-lg shadow-sm m-1" style={{ width: cardWidth }}>
               <TouchableOpacity 
                 className="items-center p-2"
-                onPress={() => navigation?.navigate?.('Product', { productId: item._id })}
               >
                 <Image
                   source={{ uri: item.imageUrls[0] || item.thumbnail }}
@@ -461,7 +464,6 @@ const ProductListing = ({ route, navigation }: ProductListingProps) => {
               
               <View className="p-3">
                 <TouchableOpacity 
-                  onPress={() => navigation?.navigate?.('Product', { productId: item._id })}
                 >
                   <Text className="text-sm font-medium text-gray-800" numberOfLines={2}>{item.name}</Text>
                 </TouchableOpacity>
