@@ -30,7 +30,7 @@ export const ShopContext = createContext<ShopContextType | undefined>(undefined)
 const ShopContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const currency = "Rs";
   const delivery_fee = 299;
-  const backendUrl = process.env.BACKEND_URL || "https://your-backend-url.com";
+  const backendUrl = "https://api.chiltel.com";
   
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);

@@ -56,9 +56,13 @@ const Home: React.FC = () => {
   return (
     <View className="flex-1 bg-white">
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      <ScrollView className="flex-1 px-5" showsVerticalScrollIndicator={false} contentContainerStyle={{minHeight: "100%", paddingBottom: 10}}>
+      <ScrollView 
+        className="flex-1 w-full" 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={{minHeight: "100%", paddingBottom: 80}}
+      >
       {/* Main content container */}
-      <View className="flex-1">
+      <View className="flex-1 w-full">
         {/* Don't use ScrollView here as it's already in the layout */}
         <View className="pb-2">
           <Hero />

@@ -67,6 +67,8 @@ const ProductListing = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("featured");
+
+  const backendUrl = "https://api.chiltel.com";
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -74,9 +76,6 @@ const ProductListing = () => {
     priceRange: [] as { label: string; min: number; max: number }[],
     rating: null as number | null,
   });
-
-  // Backend URL
-  const backendUrl = "https://api.chiltel.com";
 
   useEffect(() => {
     fetchProducts();
@@ -309,7 +308,7 @@ const ProductListing = () => {
         <View className="flex-1 flex-row items-center bg-gray-100 rounded-lg px-3 mr-2">
           <Ionicons name="search" size={20} color="#666" className="mr-2" />
           <TextInput
-            className="flex-1 h-9 text-sm"
+            className="flex-1 h-10 text-sm"
             placeholder="Search products..."
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -449,7 +448,7 @@ const ProductListing = () => {
           numColumns={2}
           keyExtractor={(item) => item._id}
           className="p-2"
-          contentContainerStyle={{ paddingHorizontal: 4 }}
+          contentContainerStyle={{ paddingHorizontal: 4, paddingBottom: 80 }}
           renderItem={({ item }) => (
             <View className="bg-white rounded-lg shadow-sm m-1" style={{ width: cardWidth }}>
               <TouchableOpacity 

@@ -23,6 +23,9 @@ export type RootStackParamList = {
   ServiceCollection: undefined;
   ServiceDetail: { id: string };
   ProductList: { category: string };
+  ServiceModel: { 
+    category: string;
+  };
   NotFound: undefined;
 };
 
@@ -114,25 +117,29 @@ export interface BlogPost {
 
 // Service interface
 export interface Service {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   price: number;
-  image?: string;
-  duration?: string;
+  category: string;
+  product: string;
+  estimatedDuration: string;
+  isAvailable: boolean;
+  discount: number;
+  rateChart?: any;
+  requirements?: string[];
+  type?: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
-
-// // In types.tsx
-// export interface Product {
-//   id: string;
-//   name: string;
-//   price: number;
-//   description: string;
-//   image: string;
-//   category: string;  // Ensure this exists
-//   inStock: boolean;
-// }
+// Address interface
+export interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+}
 
 // Form error type
 export type FormErrors<T> = {

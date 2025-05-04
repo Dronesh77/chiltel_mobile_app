@@ -9,7 +9,7 @@ const About: React.FC = () => {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
-      <ScrollView contentContainerStyle={tw`flex-grow p-4`}>
+      <ScrollView contentContainerStyle={tw`flex-grow p-4 pb-20 w-full`}>
         <View style={tw`items-center my-6`}>
           <Text style={tw`text-2xl font-bold text-gray-800`}>About Chiltel</Text>
         </View>

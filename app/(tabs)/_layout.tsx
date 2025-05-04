@@ -11,12 +11,14 @@ import shopIcon from '@/assets/icons/shop-icon.png';
 import infoIcon from '@/assets/icons/info-icon.png';
 import contactIcon from '@/assets/icons/contact-icon.png';
 import blogIcon from '@/assets/icons/blog-icon.png';
+import { ServiceCartProvider } from '@/context/ServiceCartContext'
 
 const _layout = () => {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ShopContextProvider>
         <AuthProvider>
+          <ServiceCartProvider>
           <View className="flex-1">
             <Header />
             <Tabs
@@ -100,6 +102,7 @@ const _layout = () => {
                 name="ProductListing"
                 options={{
                   href: null,
+                  headerShown: false,
                 }}
               />
               <Tabs.Screen
@@ -112,22 +115,26 @@ const _layout = () => {
                 name="ServiceModel"
                 options={{
                   href: null,
+                  headerShown: false,
                 }}
               />
               <Tabs.Screen
                 name="Collection"
                 options={{
                   href: null,
+                  headerShown: false,
                 }}
               />
               <Tabs.Screen
                 name="login"
                 options={{
                   href: null,
+                  headerShown: false,
                 }}
               />
             </Tabs>
           </View>
+          </ServiceCartProvider>
         </AuthProvider>
       </ShopContextProvider>
     </SafeAreaView>

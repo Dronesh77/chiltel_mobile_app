@@ -47,15 +47,16 @@ const Blog: React.FC = () => {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
-      <View style={tw`p-4 border-b border-gray-200 items-center`}>
-        <Text style={tw`text-2xl font-bold text-gray-800`}>Blog</Text>
+      <View style={tw`w-full border-b border-gray-200 items-center`}>
+        <Text style={tw`text-2xl font-bold text-gray-800 p-4`}>Blog</Text>
       </View>
 
       <FlatList
         data={posts}
         renderItem={renderItem}
         keyExtractor={item => item.id}
-        contentContainerStyle={tw`p-4`}
+        contentContainerStyle={tw`p-4 pb-20`}
+        style={tw`w-full`}
       />
     </SafeAreaView>
   );

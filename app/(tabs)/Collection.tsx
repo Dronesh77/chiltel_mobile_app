@@ -450,93 +450,95 @@ const ServiceCollection = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="px-4 py-3">
-        <View className="mb-5">
-          <Text className="text-3xl font-bold text-gray-900 text-center">Welcome to Chill Mart</Text>
-          <Text className="text-sm text-gray-600 text-center mt-1">
-            Find the best appliance solutions in one place
-          </Text>
-        </View>
+      <View className="flex-1">
+        <View className="px-4 py-3">
+          <View className="mb-5">
+            <Text className="text-3xl font-bold text-gray-900 text-center">Welcome to Chill Mart</Text>
+            <Text className="text-sm text-gray-600 text-center mt-1">
+              Find the best appliance solutions in one place
+            </Text>
+          </View>
 
-        {/* Filter Button */}
-        <TouchableOpacity 
-          onPress={() => setShowFilters(true)}
-          className="flex-row items-center justify-center bg-white py-3 rounded-lg shadow-sm mb-4"
-          activeOpacity={0.7}
-        >
-          <Filter width={18} height={18} stroke="#4B5563" className="mr-2" />
-          <Text className="text-gray-700 font-medium">Filters</Text>
-        </TouchableOpacity>
+          {/* Filter Button */}
+          <TouchableOpacity 
+            onPress={() => setShowFilters(true)}
+            className="flex-row items-center justify-center bg-white py-3 rounded-lg shadow-sm mb-4"
+            activeOpacity={0.7}
+          >
+            <Filter width={18} height={18} stroke="#4B5563" className="mr-2" />
+            <Text className="text-gray-700 font-medium">Filters</Text>
+          </TouchableOpacity>
 
-        {/* Active Filters Display */}
-        {(mainCategoryFilter || typeFilter.length > 0) && (
-          <View className="flex-row flex-wrap mb-4">
-            {mainCategoryFilter && (
-              <View className="bg-blue-100 rounded-full px-3 py-1 mr-2 mb-2 flex-row items-center">
-                <Text className="text-blue-800 text-xs mr-1">{mainCategoryFilter}</Text>
-                <TouchableOpacity onPress={() => setMainCategoryFilter(null)}>
-                  <X width={12} height={12} stroke="#1E40AF" />
+          {/* Active Filters Display */}
+          {(mainCategoryFilter || typeFilter.length > 0) && (
+            <View className="flex-row flex-wrap mb-4">
+              {mainCategoryFilter && (
+                <View className="bg-blue-100 rounded-full px-3 py-1 mr-2 mb-2 flex-row items-center">
+                  <Text className="text-blue-800 text-xs mr-1">{mainCategoryFilter}</Text>
+                  <TouchableOpacity onPress={() => setMainCategoryFilter(null)}>
+                    <X width={12} height={12} stroke="#1E40AF" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              {typeFilter.map(type => (
+                <View 
+                  className="bg-blue-100 rounded-full px-3 py-1 mr-2 mb-2 flex-row items-center"
+                >
+                  <Text className="text-blue-800 text-xs mr-1">{type}</Text>
+                  <TouchableOpacity onPress={() => toggleType(type)}>
+                    <X width={12} height={12} stroke="#1E40AF" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {(mainCategoryFilter || typeFilter.length > 0) && (
+                <TouchableOpacity 
+                  onPress={clearFilters}
+                  className="bg-gray-200 rounded-full px-3 py-1 mb-2"
+                >
+                  <Text className="text-gray-700 text-xs">Clear All</Text>
                 </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {productsLoading ? (
+            <View className="flex-1 justify-center items-center py-12">
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text className="mt-4 text-gray-600">Loading appliances...</Text>
+            </View>
+          ) : filteredCategories.length === 0 ? (
+            <View className="bg-white rounded-xl p-8 items-center justify-center shadow-sm mt-4">
+              <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center mb-4">
+                <Text className="text-2xl">😕</Text>
               </View>
-            )}
-            {typeFilter.map(type => (
-              <View 
-                // key={type} 
-                className="bg-blue-100 rounded-full px-3 py-1 mr-2 mb-2 flex-row items-center"
-              >
-                <Text className="text-blue-800 text-xs mr-1">{type}</Text>
-                <TouchableOpacity onPress={() => toggleType(type)}>
-                  <X width={12} height={12} stroke="#1E40AF" />
-                </TouchableOpacity>
-              </View>
-            ))}
-            {(mainCategoryFilter || typeFilter.length > 0) && (
+              <Text className="text-xl font-semibold text-gray-700 mb-2 text-center">No appliances found</Text>
+              <Text className="text-gray-500 mb-6 text-center">Try adjusting your filter criteria</Text>
               <TouchableOpacity 
                 onPress={clearFilters}
-                className="bg-gray-200 rounded-full px-3 py-1 mb-2"
+                className="bg-blue-600 py-3 px-6 rounded-lg"
               >
-                <Text className="text-gray-700 text-xs">Clear All</Text>
+                <Text className="text-white font-semibold">Clear All Filters</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        )}
-
-        {productsLoading ? (
-          <View className="flex-1 justify-center items-center py-12">
-            <ActivityIndicator size="large" color="#3b82f6" />
-            <Text className="mt-4 text-gray-600">Loading appliances...</Text>
-          </View>
-        ) : filteredCategories.length === 0 ? (
-          <View className="bg-white rounded-xl p-8 items-center justify-center shadow-sm mt-4">
-            <View className="w-16 h-16 rounded-full bg-gray-100 items-center justify-center mb-4">
-              <Text className="text-2xl">😕</Text>
             </View>
-            <Text className="text-xl font-semibold text-gray-700 mb-2 text-center">No appliances found</Text>
-            <Text className="text-gray-500 mb-6 text-center">Try adjusting your filter criteria</Text>
-            <TouchableOpacity 
-              onPress={clearFilters}
-              className="bg-blue-600 py-3 px-6 rounded-lg"
-            >
-              <Text className="text-white font-semibold">Clear All Filters</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View className="flex-1">
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className="text-gray-700">
-                Showing {filteredCategories.length} {filteredCategories.length === 1 ? 'appliance' : 'appliances'}
-              </Text>
+          ) : (
+            <View className="flex-1">
+              <View className="flex-row justify-between items-center mb-3">
+                <Text className="text-gray-700">
+                  Showing {filteredCategories.length} {filteredCategories.length === 1 ? 'appliance' : 'appliances'}
+                </Text>
+              </View>
+              
+              <FlatList
+                data={filteredCategories}
+                renderItem={renderCategoryCard}
+                keyExtractor={(item, index) => index.toString()}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 80 }}
+                className="w-full"
+              />
             </View>
-            
-            <FlatList
-              data={filteredCategories}
-              renderItem={renderCategoryCard}
-              keyExtractor={(item, index) => index.toString()}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20 }}
-            />
-          </View>
-        )}
+          )}
+        </View>
       </View>
       
       {renderFilterModal()}
