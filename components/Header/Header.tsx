@@ -7,7 +7,7 @@ import cartIcon from '@/assets/icons/cart-icon.jpeg';
 export default function Header() {
   const insets = useSafeAreaInsets();
   return (
-    <View style={{ paddingTop: insets.top, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}>
+    <View style={{ paddingTop: insets.top - 50, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}>
       <View className="flex-row items-center justify-between px-4 py-3">
         <Logo />
         <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 12 }}>

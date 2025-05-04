@@ -1,144 +1,139 @@
-import { SafeAreaView, View } from 'react-native'
-import Header from '@/components/Header/Header'
-import { Slot } from 'expo-router'
-import ShopContextProvider from '@/context/ShopContext'
-import { AuthProvider } from '@/context/AuthContext'
-import { Tabs } from 'expo-router'
-import TabIcon from '@/components/TabIcon'
+import React from 'react';
+import { View, Image, Text, Platform } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-import homeIcon from '@/assets/icons/home-icon.png';
-import shopIcon from '@/assets/icons/shop-icon.png';
-import infoIcon from '@/assets/icons/info-icon.png';
-import contactIcon from '@/assets/icons/contact-icon.png';
-import blogIcon from '@/assets/icons/blog-icon.png';
-import { ServiceCartProvider } from '@/context/ServiceCartContext'
+import Header from '@/components/Header/Header';
+import ShopContextProvider from '@/context/ShopContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { ServiceCartProvider } from '@/context/ServiceCartContext';
 
-const _layout = () => {
+const Layout = () => {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Platform.OS === 'android' ? Math.max(insets.bottom, 10) : insets.bottom;
+
+  const renderTabIcon = (
+    iconName: keyof typeof Ionicons.glyphMap,
+    name: string,
+    focused: boolean,
+    color: string
+  ) => (
+    <View style={{ 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      width: 72,
+      paddingHorizontal: 0
+    }}>
+      <Ionicons
+        name={iconName}
+        size={24}
+        color={color}
+        style={{ marginBottom: 2 }}
+      />
+      <Text
+        style={{
+          fontSize: 12,
+          color,
+          fontWeight: focused ? '600' : '400',
+          textAlign: 'center',
+          lineHeight: 12,
+        }}
+      >
+        {name}
+      </Text>
+    </View>
+  );
+
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
       <ShopContextProvider>
         <AuthProvider>
           <ServiceCartProvider>
-          <View className="flex-1">
-            <Header />
-            <Tabs
-              screenOptions={{
-                tabBarShowLabel: false,
-                tabBarActiveTintColor: '#2874F0',
-                tabBarInactiveTintColor: '#828282',
-                tabBarItemStyle: {
-                  width: "100%",
-                  height: '100%',
-                  justifyContent: "flex-start",
-                  alignItems: "center",
-                  paddingTop: 6,
-                  paddingBottom: 0,
-                },
-                tabBarStyle: {
-                  backgroundColor: "#fff",
-                  height: 60,
-                  borderTopWidth: 1,
-                  borderTopColor: "#e0e0e0",
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  elevation: 0,
-                  shadowOpacity: 0,
-                },
-              }}
-            >
-              <Tabs.Screen
-                name="index"
-                options={{
-                  title: 'Home',
+            <View style={{ flex: 1 }}>
+              <Header />
+
+              <Tabs
+                screenOptions={{
                   headerShown: false,
-                  tabBarIcon: ({ color, focused }) => (
-                    <TabIcon focused={focused} icon={homeIcon} name="Home" color={color} />
-                  ),
+                  tabBarShowLabel: false,
+                  tabBarActiveTintColor: '#2874F0',
+                  tabBarInactiveTintColor: '#9e9e9e',
+                  tabBarItemStyle: {
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    minHeight: 48,
+                  },
+                  tabBarStyle: {
+                    backgroundColor: '#ffffff',
+                    height: 7 + bottomInset,
+                    paddingTop: 10,
+                    paddingBottom: bottomInset,
+                    borderTopWidth: 1,
+                    borderTopColor: '#d1d1d1',
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    elevation: 8,
+                    shadowOpacity: 0.15,
+                    shadowOffset: { width: 0, height: -3 },
+                    shadowRadius: 3,
+                    shadowColor: '#000',
+                  },
                 }}
-              />
-              <Tabs.Screen
-                name="chillMart"
-                options={{
-                  title: 'ChillMart',
-                  headerShown: false,
-                  tabBarIcon: ({ color, focused }) => (
-                    <TabIcon focused={focused} icon={shopIcon} name="ChillMart" color={color} />
-                  ),
-                }}
-              />
-              <Tabs.Screen
-                name="about"
-                options={{
-                  title: 'About',
-                  headerShown: false,
-                  tabBarIcon: ({ color, focused }) => (
-                    <TabIcon focused={focused} icon={infoIcon} name="About" color={color} />
-                  ),
-                }}
-              />
-              <Tabs.Screen
-                name="contact"
-                options={{
-                  title: 'Contact',
-                  headerShown: false,
-                  tabBarIcon: ({ color, focused }) => (
-                    <TabIcon focused={focused} icon={contactIcon} name="Contact" color={color} />
-                  ),
-                }}
-              />
-              <Tabs.Screen
-                name="blog"
-                options={{
-                  title: 'Blog',
-                  headerShown: false,
-                  tabBarIcon: ({ color, focused }) => (
-                    <TabIcon focused={focused} icon={blogIcon} name="Blog" color={color} />
-                  ),
-                }}
-              />
-              <Tabs.Screen
-                name="ProductListing"
-                options={{
-                  href: null,
-                  headerShown: false,
-                }}
-              />
-              <Tabs.Screen
-                name="cart"
-                options={{
-                  href: null,
-                }}
-              />
-              <Tabs.Screen
-                name="ServiceModel"
-                options={{
-                  href: null,
-                  headerShown: false,
-                }}
-              />
-              <Tabs.Screen
-                name="Collection"
-                options={{
-                  href: null,
-                  headerShown: false,
-                }}
-              />
-              <Tabs.Screen
-                name="login"
-                options={{
-                  href: null,
-                  headerShown: false,
-                }}
-              />
-            </Tabs>
-          </View>
+              >
+                <Tabs.Screen
+                  name="index"
+                  options={{
+                    title: 'Home',
+                    tabBarIcon: ({ color, focused }) => renderTabIcon('home-outline', 'Home', focused, color),
+                  }}
+                />
+                <Tabs.Screen
+                  name="chillMart"
+                  options={{
+                    title: 'ChillMart',
+                    tabBarIcon: ({ color, focused }) => renderTabIcon('cart-outline', 'ChillMart', focused, color),
+                  }}
+                />
+                <Tabs.Screen
+                  name="about"
+                  options={{
+                    title: 'About',
+                    tabBarIcon: ({ color, focused }) => renderTabIcon('information-circle-outline', 'About', focused, color),
+                  }}
+                />
+                <Tabs.Screen
+                  name="contact"
+                  options={{
+                    title: 'Contact',
+                    tabBarIcon: ({ color, focused }) => renderTabIcon('call-outline', 'Contact', focused, color),
+                  }}
+                />
+                <Tabs.Screen
+                  name="blog"
+                  options={{
+                    title: 'Blog',
+                    tabBarIcon: ({ color, focused }) => renderTabIcon('document-text-outline', 'Blog', focused, color),
+                  }}
+                />
+
+                {/* Hidden screens */}
+                <Tabs.Screen name="ProductListing" options={{ href: null }} />
+                <Tabs.Screen name="cart" options={{ href: null }} />
+                <Tabs.Screen name="ServiceModel" options={{ href: null }} />
+                <Tabs.Screen name="Collection" options={{ href: null }} />
+                <Tabs.Screen name="login" options={{ href: null }} />
+              </Tabs>
+            </View>
           </ServiceCartProvider>
         </AuthProvider>
       </ShopContextProvider>
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default _layout
+export default Layout;
