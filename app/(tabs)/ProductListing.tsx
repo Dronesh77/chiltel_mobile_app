@@ -11,9 +11,12 @@ import {
   TextInput
 } from 'react-native';
 import axios from 'axios';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { RootStackParamList } from '../types';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
+import Toast from 'react-native-toast-message';
+import { useCart } from '@/context/CartContext';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 32) / 2;
@@ -53,6 +56,9 @@ const priceRanges = [
 
 const ProductListing = () => {
   const { category } = useLocalSearchParams<{ category: string }>();
+  const { isAuthenticated } = useAuth();
+  const { addToCart } = useCart();
+  const router = useRouter();
   
   // Add default value for category if params is undefined
   console.log('Route params:', category);
@@ -68,7 +74,7 @@ const ProductListing = () => {
   const [selectedMainCategory, setSelectedMainCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState("featured");
 
-  const backendUrl = "https://api.chiltel.com";
+  const backendUrl = process.env.BACKEND_URL;
   
   // Filter state
   const [filters, setFilters] = useState({
@@ -87,7 +93,7 @@ const ProductListing = () => {
       console.log('Fetching products for category:', categoryParam);
       
       // First try to fetch all products
-      const response = await axios.get(backendUrl + '/api/product/list', 
+      const response = await axios.get(backendUrl + "/api/product/list", 
         {
           params: {
             category: categoryParam
@@ -251,15 +257,40 @@ const ProductListing = () => {
   };
 
   const handleBuyNow = (item: Product) => {
+    if (!isAuthenticated) {
+      Toast.show({
+        type: 'info',
+        text1: 'Login Required',
+        text2: 'Please login to continue with your purchase'
+      });
+      router.push('/login');
+      return;
+    }
     // Product buying logic goes here
-    // For now let's just log to demonstrate it works
     console.log('Buy now:', item.name);
   };
 
-  const handleAddToCart = (item: Product) => {
-    // Add to cart logic goes here
-    // For now let's just log to demonstrate it works
-    console.log('Add to cart:', item.name);
+  const handleAddToCart = async (item: Product) => {
+    if (!isAuthenticated) {
+      Toast.show({
+        type: 'info',
+        text1: 'Login Required',
+        text2: 'Please login to add items to your cart'
+      });
+      router.push('/login');
+      return;
+    }
+    
+    try {
+      await addToCart(item);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to add item to cart'
+      });
+    }
   };
 
   // Rating Stars Component
@@ -529,6 +560,8 @@ const ProductListing = () => {
           )}
         />
       )}
+
+      <Toast />
     </View>
   );
 };

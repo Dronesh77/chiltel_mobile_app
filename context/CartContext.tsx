@@ -4,8 +4,9 @@ import { View, Text, ActivityIndicator } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
 import { useAuth } from "@/context/AuthContext";
+import { router } from "expo-router";
 
-const BACKEND_URL = 'YOUR_BACKEND_URL';
+const BACKEND_URL = process.env.VITE_BACKEND_URL;
 
 interface CartItem {
   _id: string;
@@ -15,6 +16,12 @@ interface CartItem {
   quantity: number;
   image: string;
   category: string;
+  productId: string;
+  discount?: number;
+  brand?: string;
+  rating?: number;
+  reviews?: number;
+  inStock?: boolean;
 }
 
 interface Cart {
@@ -79,32 +86,70 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const fetchCart = async (): Promise<void> => {
     try {
       setCartLoading(true);
-      if (!isAuthenticated || !sessionId) return;
+      if (!isAuthenticated || !sessionId) {
+        console.log('Not authenticated or no session ID, skipping cart fetch');
+        return;
+      }
+
+      console.log('Fetching cart with session:', sessionId);
 
       const response = await axios.post(
         `${BACKEND_URL}/api/cart/get`,
         {},
         {
           headers: {
-            Authorization: `Bearer ${sessionId}`,
-          },
+            'Authorization': sessionId,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
         }
       );
       
-      const cartData = response.data.cartData;
+      console.log('Cart response:', response.data);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to fetch cart');
+      }
+
+      const cartData = response.data.cartData || response.data.cart;
+      console.log('Processed cart data:', cartData);
+
+      if (!cartData) {
+        throw new Error('No cart data in response');
+      }
+
+      if (!cartData.items || !Array.isArray(cartData.items)) {
+        console.error('Invalid cart items structure:', cartData);
+        throw new Error('Invalid cart items structure');
+      }
+
       setCart(cartData);
       setCartId(cartData._id);
-      setCartAmount(cartData.totalAmount);
+      setCartAmount(cartData.totalAmount || 0);
       
       const totalCount = cartData.items.reduce(
         (sum: number, item: CartItem) => sum + item.quantity, 0
       );
       setCartCount(totalCount);
+
+      console.log('Cart state updated:', {
+        cartId: cartData._id,
+        itemsCount: cartData.items.length,
+        totalAmount: cartData.totalAmount,
+        totalCount
+      });
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        handleAuthError();
-      }
       console.error("Failed to fetch cart:", error);
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error details:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers
+        });
+        if (error.response?.status === 401) {
+          handleAuthError();
+        }
+      }
     } finally {
       setCartLoading(false);
     }
@@ -129,27 +174,61 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const addToCart = async (item: any): Promise<void> => {
     try {
       if (!isAuthenticated || !sessionId) {
-        navigation.navigate("Login" as never);
+        console.log('Not authenticated or no session ID');
+        router.push('/login');
         return;
       }
+
+      // Detailed logging of the item structure
+      console.log('Item received in addToCart:', {
+        item,
+        hasId: Boolean(item?._id),
+        keys: item ? Object.keys(item) : [],
+        type: typeof item
+      });
+
+      // Check for _id since that's what we have in the Product model
+      if (!item || !item._id) {
+        console.error('Invalid item structure:', item);
+        throw new Error('Invalid item structure: Missing product ID');
+      }
+
+      console.log('Making request with session:', sessionId);
 
       const response = await axios.post(
         `${BACKEND_URL}/api/cart/add`,
         {
-          itemId: item._id,
-          price: parseFloat((item.price * (1 - item.discount)).toFixed(2)),
+          itemId: item._id, // Use _id from the Product model
+          price: parseFloat((item.price * (1 - (item.discount || 0))).toFixed(2)),
           name: item.name,
-          image: item.thumbnail,
+          image: item.thumbnail || item.imageUrls?.[0],
           category: item.category,
+          inStock: item.inStock ?? true, // Add inStock property with default true
+          brand: item.brand,
+          rating: item.rating,
+          reviews: item.reviews
         },
         {
           headers: {
-            Authorization: `Bearer ${sessionId}`,
-          },
+            'Authorization': sessionId,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
         }
       );
       
-      const updatedCart = response.data.cart;
+      console.log('Server response:', response.data);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to add item to cart');
+      }
+
+      // The response might be in response.data.cart or response.data.cartData
+      const updatedCart = response.data.cart || response.data.cartData;
+      if (!updatedCart) {
+        throw new Error('No cart data in response');
+      }
+
       setCart(updatedCart);
       setCartId(updatedCart._id);
       setCartAmount(updatedCart.totalAmount);
@@ -165,67 +244,207 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         text2: "Item added to your cart"
       });
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        handleAuthError();
-      }
       console.error("Error adding to cart:", error);
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error details:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers
+        });
+        if (error.response?.status === 401) {
+          handleAuthError();
+        }
+      }
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: error instanceof Error ? error.message : "Failed to add item to cart"
+      });
     }
   };
 
   const removeFromCart = async (itemId: string) => {
     try {
+      if (!isAuthenticated || !sessionId) {
+        console.log('Not authenticated or no session ID');
+        return { success: false, error: 'Not authenticated' };
+      }
+
+      // Find the cart item to get the correct itemId
+      const cartItem = cart?.items?.find(item => item._id === itemId);
+      if (!cartItem) {
+        console.error('Item not found in cart:', itemId);
+        return { success: false, error: 'Item not found in cart' };
+      }
+
+      // Log the full cart item to debug
+      console.log('Cart item found:', cartItem);
+
+      // The backend expects the productId field
+      const productId = cartItem.productId;
+      console.log('Using productId:', productId);
+
+      if (!productId) {
+        console.error('No productId found in cart item:', cartItem);
+        return { success: false, error: 'Invalid cart item: missing productId' };
+      }
+
+      console.log('Removing item from cart:', { 
+        cartItemId: cartItem._id,
+        productId,
+        fullCartItem: cartItem
+      });
+      
       const response = await axios.post(
         `${BACKEND_URL}/api/cart/remove`,
-        { itemId },
-        { headers: { Authorization: `Bearer ${sessionId}` } }
+        { itemId: productId },
+        {
+          headers: {
+            'Authorization': sessionId,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
       );
 
-      if (response.status === 200) {
-        const cartData = response.data.cartData;
-        setCart(cartData);
-        setCartId(cartData._id);
-        setCartAmount(cartData.totalAmount);
-        
-        const totalCount = cartData.items.reduce(
-          (sum: number, item: CartItem) => sum + item.quantity, 0
-        );
-        setCartCount(totalCount);
-        
-        return { success: true, updatedCart: cartData };
+      console.log('Remove item response:', response.data);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to remove item');
       }
-      throw new Error("Failed to remove item");
+
+      const cartData = response.data.cartData || response.data.cart;
+      if (!cartData) {
+        throw new Error('No cart data in response');
+      }
+
+      setCart(cartData);
+      setCartId(cartData._id);
+      setCartAmount(cartData.totalAmount || 0);
+      
+      const totalCount = cartData.items.reduce(
+        (sum: number, item: CartItem) => sum + item.quantity, 0
+      );
+      setCartCount(totalCount);
+      
+      return { success: true, updatedCart: cartData };
     } catch (error: any) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        handleAuthError();
+      console.error("Error removing from cart:", error);
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error details:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers
+        });
+        if (error.response?.status === 401) {
+          handleAuthError();
+        }
       }
       return { success: false, error: error.message };
     }
   };
 
   const updateQuantity = async (itemId: string, quantity: number) => {
+    console.log('updateQuantity called with:', { itemId, quantity });
+    console.log('Current cart state:', {
+      hasCart: Boolean(cart),
+      itemsCount: cart?.items?.length,
+      items: cart?.items
+    });
+    
     try {
+      console.log('Entering try block');
+      
+      if (!isAuthenticated || !sessionId) {
+        console.log('Not authenticated or no session ID');
+        return { success: false, error: 'Not authenticated' };
+      }
+
+      if (quantity < 1) {
+        console.log('Quantity less than 1, removing item instead');
+        // If quantity is less than 1, remove the item instead
+        return removeFromCart(itemId);
+      }
+
+      // Find the cart item to get the correct itemId
+      const cartItem = cart?.items?.find(item => item._id === itemId);
+      console.log('Cart item search result:', {
+        searchedId: itemId,
+        found: Boolean(cartItem),
+        cartItem
+      });
+
+      if (!cartItem) {
+        console.error('Item not found in cart:', itemId);
+        return { success: false, error: 'Item not found in cart' };
+      }
+
+      // Log the full cart item to debug
+      console.log('Cart item found:', cartItem);
+
+      // The backend expects the productId field
+      const productId = cartItem.productId;
+      console.log('Using productId:', productId);
+
+      if (!productId) {
+        console.error('No productId found in cart item:', cartItem);
+        return { success: false, error: 'Invalid cart item: missing productId' };
+      }
+
+      console.log('Making update request with:', { 
+        cartItemId: cartItem._id,
+        productId,
+        quantity,
+        fullCartItem: cartItem
+      });
+      
       const response = await axios.post(
         `${BACKEND_URL}/api/cart/update`,
-        { itemId, quantity },
-        { headers: { Authorization: `Bearer ${sessionId}` } }
+        { 
+          itemId: productId,
+          quantity 
+        },
+        {
+          headers: {
+            'Authorization': sessionId,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        }
       );
 
-      if (response.status === 200) {
-        const updatedCart = response.data.cart;
-        setCart(updatedCart);
-        setCartAmount(updatedCart.totalAmount);
-        
-        const totalCount = updatedCart.items.reduce(
-          (sum: number, item: CartItem) => sum + item.quantity, 0
-        );
-        setCartCount(totalCount);
-        
-        return { success: true, updatedCart };
+      console.log('Update quantity response:', response.data);
+
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Failed to update quantity');
       }
-      throw new Error("Failed to update quantity");
+
+      const cartData = response.data.cartData || response.data.cart;
+      if (!cartData) {
+        throw new Error('No cart data in response');
+      }
+
+      setCart(cartData);
+      setCartId(cartData._id);
+      setCartAmount(cartData.totalAmount || 0);
+      
+      const totalCount = cartData.items.reduce(
+        (sum: number, item: CartItem) => sum + item.quantity, 0
+      );
+      setCartCount(totalCount);
+      
+      return { success: true, updatedCart: cartData };
     } catch (error: any) {
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        handleAuthError();
+      console.error("Error updating quantity:", error);
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error details:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers
+        });
+        if (error.response?.status === 401) {
+          handleAuthError();
+        }
       }
       return { success: false, error: error.message };
     }

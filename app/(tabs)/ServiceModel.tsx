@@ -110,7 +110,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isVisible, onClose, onBook,
   const fetchAndOrganizeServices = async () => {
     setServicesLoading(true);
     try {
-      const response = await axios.get(`${backendUrl}/api/services/only`, {
+      const response = await axios.get(backendUrl + "/api/services/only", {
         headers: {
           Authorization: sessionId,
           product: category?.name,

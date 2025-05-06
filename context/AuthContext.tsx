@@ -3,37 +3,29 @@ import axios from "axios";
 import { Client, Account } from 'appwrite';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import {Models} from "appwrite";
 import Toast from 'react-native-toast-message';
+import { User } from '@/app/types';
 
-// Environment variables - you'll need to implement this in React Native
-// For example using react-native-dotenv or react-native-config
-const BACKEND_URL = 'YOUR_BACKEND_URL';
-const PROJECT_ID = 'YOUR_PROJECT_ID';
+// Environment variables
+const BACKEND_URL = process.env.BACKEND_URL;
+const PROJECT_ID = process.env.VITE_PROJECT_ID || "PROJECT_ID";
 
 const client = new Client()
-    .setEndpoint('https://cloud.appwrite.io/v1')
-    .setProject(PROJECT_ID);
+  .setEndpoint('https://cloud.appwrite.io/v1')
+  .setProject(PROJECT_ID);
 
 export const account = new Account(client);
 
 // Define types
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  // Add other user properties as needed
-}
-
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
+  sessionId: string | null;
   checkAuthStatus: () => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  sessionId: string;
 }
 
 interface AuthProviderProps {
@@ -46,53 +38,95 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [sessionId, setSessionId] = useState<string>("");
-  
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
   const navigation = useNavigation();
 
-  // Configure Axios globally to send cookies
   axios.defaults.withCredentials = true;
-  
-  const getCurrentSessionId = async (): Promise<void> => {
-    try {
-      const sessions = await account.listSessions();
-      
-      if (sessions.total > 0) {
-        const currentSession = sessions.sessions.find(session => session.current);
-        if (currentSession) {
-          setSessionId(currentSession.$id);
-          setIsAuthenticated(true);
-        }
-      }
-    } catch (error) {
-      console.error("Error getting session ID:", error);
-    }
-  };
-  
+
   const checkAuthStatus = async (): Promise<void> => {
     setLoading(true);
-    await getCurrentSessionId();
-    
     try {
-      if(sessionId === "") {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      const response = await axios.post(`${BACKEND_URL}/api/user/session`, {
-        sessionId
-      });
-
-      if (response.status === 200 && response.data) {
-        setUser(response.data);
+      console.log('Starting checkAuthStatus...');
+      try {
+        // First try to get the current user
+        const user = await account.get();
+        console.log('Got user from Appwrite:', JSON.stringify(user, null, 2));
+        
+        // If we can get the user, we have a valid session
+        console.log('Setting isAuthenticated to true based on valid user');
         setIsAuthenticated(true);
-      } else {
+        
+        // Get the current session
+        const sessions = await account.listSessions();
+        console.log('Current sessions:', JSON.stringify(sessions, null, 2));
+        
+        const currentSession = sessions.sessions.find(session => session.current);
+        if (currentSession) {
+          console.log('Found current session:', JSON.stringify(currentSession, null, 2));
+          setSessionId(currentSession.$id);
+          
+          try {
+            // Update backend with session info
+            console.log('Updating backend with session info...');
+            const response = await axios.post(`${BACKEND_URL}/api/user/session`, {
+              sessionId: currentSession.$id,
+              userId: user.$id,
+              phone: user.phone
+            });
+
+            if (response.status === 200 && response.data) {
+              console.log('Session check successful, user data:', JSON.stringify(response.data, null, 2));
+              setUser(response.data);
+            } else {
+              console.log('Session check failed, no user data from backend');
+              // Keep isAuthenticated true since we have a valid Appwrite session
+              // Only update user data if we have it
+              if (user) {
+                setUser({
+                  _id: user.$id,
+                  id: user.$id,
+                  name: user.name || 'User',
+                  email: user.email || '',
+                  phone: user.phone || ''
+                });
+              }
+            }
+          } catch (error) {
+            console.error('Error updating backend session:', error);
+            // Keep the session active even if backend update fails
+            if (user) {
+              setUser({
+                _id: user.$id,
+                id: user.$id,
+                name: user.name || 'User',
+                email: user.email || '',
+                phone: user.phone || ''
+              });
+            }
+          }
+        } else {
+          setSessionId(null);
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } catch (error: any) {
+        console.error('Error getting user:', error);
+        if (error.response) {
+          console.error('Error response:', JSON.stringify(error.response.data, null, 2));
+        }
+        // Only clear auth state if we can't get the user
+        setSessionId(null);
         setUser(null);
         setIsAuthenticated(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error checking session:", error);
+      if (error.response) {
+        console.error('Error response:', JSON.stringify(error.response.data, null, 2));
+      }
+      // Only clear auth state if we can't get the user
+      setSessionId(null);
       setUser(null);
       setIsAuthenticated(false);
       Toast.show({
@@ -105,9 +139,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Add useEffect to check auth status when component mounts
   useEffect(() => {
     checkAuthStatus();
-  }, [sessionId]);
+  }, []);
 
   const login = async (email: string, password: string): Promise<void> => {
     try {
@@ -202,14 +237,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     isAuthenticated,
     loading,
+    sessionId,
     checkAuthStatus,
     login,
     signup,
-    logout,
-    sessionId
+    logout
   };
 
-  // Loading state component with improved UI
   if (loading) {
     return (
       <View className="flex-1 justify-center items-center bg-gray-50">
@@ -236,9 +270,6 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
-
-
-
 
 export default AuthContext;
 

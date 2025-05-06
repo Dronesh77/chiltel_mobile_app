@@ -13,7 +13,7 @@ export type RootStackParamList = {
     category: string;
   };
   Product: { productId: string };
-  Login: undefined;
+  login: undefined;
   PlaceOrder: undefined;
   BuyNow: undefined;
   Orders: undefined;
@@ -164,3 +164,4 @@ export type ProductListingScreenRouteProp = RouteProp<
   RootStackParamList, 
   'ProductListing'
 >;
+

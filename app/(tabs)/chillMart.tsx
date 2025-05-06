@@ -269,6 +269,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    paddingBottom: 50,
   },
   header: {
     backgroundColor: '#0066CC',
@@ -396,6 +397,7 @@ const styles = StyleSheet.create({
   },
   productList: {
     padding: 12,
+    paddingBottom: 24,
   },
   card: {
     backgroundColor: '#ffffff',

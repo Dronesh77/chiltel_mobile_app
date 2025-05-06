@@ -17,7 +17,7 @@ const Footer = () => {
 
   return (
     <View className="bg-white border-t border-gray-200 pt-6 px-4">
-      <ScrollView className="pb-6">
+      <ScrollView>
         <View className="flex flex-col gap-8 md:flex-row md:gap-12">
 
           {/* About Section */}
