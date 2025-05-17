@@ -6,23 +6,44 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import axios from 'axios';
 
 const OrderSuccess = () => {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const [countdown, setCountdown] = useState(5);
   const progressAnim = new Animated.Value(1);
+  const orderId = params.orderId;
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(!!orderId);
+
+  useEffect(() => {
+    if (orderId) {
+      setLoading(true);
+      axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/order/userorders`, {}, {})
+        .then(res => {
+          if (res.data.success && res.data.orders) {
+            const found = res.data.orders.find((o: any) => o._id === orderId);
+            setOrder(found || null);
+          }
+        })
+        .catch(() => setOrder(null))
+        .finally(() => setLoading(false));
+    }
+  }, [orderId]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           clearInterval(timer);
-          router.replace('/orders');
+          router.replace(`/Orders${orderId ? `?orderId=${orderId}` : ''}`);
           return 0;
         }
         return prev - 1;
@@ -53,7 +74,7 @@ const OrderSuccess = () => {
 
         {/* Order Number */}
         <View style={styles.orderNumberContainer}>
-          <Text style={styles.orderNumber}>Order #12345678</Text>
+          <Text style={styles.orderNumber}>Order #{orderId || '12345678'}</Text>
         </View>
 
         {/* Confirmation Text */}
@@ -63,16 +84,38 @@ const OrderSuccess = () => {
         </Text>
 
         {/* Order Details */}
-        <View style={styles.detailsContainer}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date:</Text>
-            <Text style={styles.detailValue}>{new Date().toLocaleDateString()}</Text>
+        {loading ? (
+          <View style={{ alignItems: 'center', marginVertical: 24 }}>
+            <ActivityIndicator size="large" color="#2563EB" />
           </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Payment Method:</Text>
-            <Text style={styles.detailValue}>Cash on Delivery</Text>
+        ) : order ? (
+          <View style={styles.detailsContainer}>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Date:</Text>
+              <Text style={styles.detailValue}>{new Date(order.updatedAt).toLocaleDateString()}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Payment Method:</Text>
+              <Text style={styles.detailValue}>{order.paymentDetails?.method === 'cod' ? 'Cash on Delivery' : order.paymentDetails?.method}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Total:</Text>
+              <Text style={styles.detailValue}>₹{order.totalAmount}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>Delivery Address:</Text>
+              <Text style={styles.detailValue}>{order.address?.street}, {order.address?.city}, {order.address?.state} - {order.address?.zipCode}</Text>
+            </View>
+            <View style={{ marginTop: 12 }}>
+              <Text style={[styles.detailLabel, { marginBottom: 4 }]}>Products:</Text>
+              {order.products?.map((item: any, idx: number) => (
+                <Text key={idx} style={styles.detailValue}>- {item.name || item.product?.name} x {item.quantity}</Text>
+              ))}
+            </View>
           </View>
-        </View>
+        ) : (
+          <Text style={styles.detailLabel}>Order details not found.</Text>
+        )}
 
         {/* Redirecting Information */}
         <View style={styles.redirectContainer}>
@@ -98,13 +141,13 @@ const OrderSuccess = () => {
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => router.replace('/Orders')}
+            onPress={() => router.replace(`/Orders${orderId ? `?orderId=${orderId}` : ''}`)}
           >
             <Text style={styles.primaryButtonText}>View Orders</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.secondaryButton}
-            onPress={() => router.replace('/Collection')}
+            onPress={() => router.push('/Orders')}
           >
             <Text style={styles.secondaryButtonText}>Continue Shopping</Text>
           </TouchableOpacity>

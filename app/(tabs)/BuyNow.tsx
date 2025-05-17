@@ -131,16 +131,123 @@ const BuyNow = () => {
 			return;
 		}
 
+		// Collect all validation errors
+		const errors = [];
+		
+		if (!formData.firstName.trim()) {
+			errors.push('First name');
+		}
+
+		if (!formData.lastName.trim()) {
+			errors.push('Last name');
+		}
+
+		if (!formData.email.trim()) {
+			errors.push('Email');
+		}
+
+		if (!formData.phone.trim()) {
+			errors.push('Phone number');
+		}
+
+		if (!formData.street.trim()) {
+			errors.push('Street address');
+		}
+
+		if (!formData.zipcode.trim() || formData.zipcode.length !== 6) {
+			errors.push('Valid PIN code');
+		}
+
+		if (!formData.city.trim()) {
+			errors.push('City');
+		}
+
+		if (!formData.state.trim()) {
+			errors.push('State');
+		}
+
+		// If there are any errors, show them in an Alert
+		if (errors.length > 0) {
+			Alert.alert(
+				'Missing Information',
+				`Please fill in the following required fields:\n\n${errors.join('\n')}`,
+				[
+					{
+						text: 'OK',
+						style: 'default'
+					}
+				]
+			);
+			return;
+		}
+
 		try {
 			setLoading(true);
-			// Add your order submission logic here
-			// This is where you would make the API call to create the order
-			
-			Toast.show({
-				type: 'success',
-				text1: 'Order placed successfully!',
-			});
-			router.replace('/OrderSuccess');
+
+			if (!user) {
+				Toast.show({
+					type: 'error',
+					text1: 'User not found',
+					text2: 'Please login again.'
+				});
+				setLoading(false);
+				return;
+			}
+
+			// Build the order data
+			const orderData = {
+				userId: user._id,
+				orderFirstName: formData.firstName,
+				orderLastName: formData.lastName,
+				orderType: "product",
+				products: [
+					{
+						product: product._id,
+						quantity: 1,
+						price: parseInt(product.price.toString()),
+					}
+				],
+				deliveryCharge: 299,
+				services: [],
+				totalAmount: productAmount + 299,
+				status: "ORDERED",
+				paymentDetails: {
+					method: method,
+					transactionId: "",
+					paidAt: new Date(),
+				},
+				address: {
+					street: formData.street,
+					city: formData.city,
+					state: formData.state,
+					zipCode: formData.zipcode,
+					country: "India"
+				},
+				phone: formData.phone,
+				orderEmail: formData.email,
+				createdAt: new Date(),
+				updatedAt: new Date(),
+			};
+
+			// Send to backend
+			const response = await axios.post(
+				`${process.env.EXPO_PUBLIC_API_URL}/api/order/place`,
+				orderData,
+				{ headers: { Authorization: sessionId } }
+			);
+
+			if (response.data.success) {
+				Toast.show({
+					type: 'success',
+					text1: 'Order placed successfully!',
+				});
+				router.replace(`/OrderSuccess?orderId=${response.data.order?._id}`);
+			} else {
+				Toast.show({
+					type: 'error',
+					text1: response.data.message || 'Order failed',
+				});
+			}
 		} catch (error) {
 			Toast.show({
 				type: 'error',
@@ -153,8 +260,8 @@ const BuyNow = () => {
 	};
 
 	return (
-		<ScrollView style={[styles.container, { paddingBottom: insets.bottom}]}>
-			<View style={styles.formContainer}>
+		<ScrollView style={[styles.container, { paddingBottom: insets.bottom }]}>
+			<View style={[styles.formContainer, { paddingBottom: insets.bottom + 10 }]}>
 				{/* Personal Information */}
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Personal Information</Text>
@@ -247,17 +354,20 @@ const BuyNow = () => {
 						<View style={[styles.inputContainer, { flex: 1 }]}>
 							<Text style={styles.label}>City</Text>
 							{showCityDropdown ? (
-								<View style={styles.dropdown}>
+								<ScrollView style={styles.dropdown} nestedScrollEnabled={true}>
 									{cityOptions.map((option: any, index: number) => (
 										<TouchableOpacity
 											key={index}
 											style={styles.dropdownItem}
-											onPress={() => onChangeHandler('city', option.value)}
+											onPress={() => {
+												onChangeHandler('city', option.value);
+												setShowCityDropdown(false);
+											}}
 										>
 											<Text>{option.label}</Text>
 										</TouchableOpacity>
 									))}
-								</View>
+								</ScrollView>
 							) : (
 								<TextInput
 									style={[styles.input, styles.disabledInput]}
@@ -369,10 +479,15 @@ const styles = StyleSheet.create({
 	},
 	dropdown: {
 		borderWidth: 1,
-		borderColor: '#DDDDDD',
+		borderColor: '#0066CC',
 		borderRadius: 8,
 		backgroundColor: '#FFFFFF',
-		maxHeight: 200,
+		maxHeight: 180,
+		shadowColor: '#000',
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.15,
+		shadowRadius: 6,
+		elevation: 10,
 	},
 	dropdownItem: {
 		padding: 12,

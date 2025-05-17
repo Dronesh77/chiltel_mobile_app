@@ -193,7 +193,8 @@ const PlaceOrder = () => {
 
 			if (response.data.success) {
 				fetchCart();
-				router.replace('/OrderSuccess');
+				const newOrderId = response.data.order?._id;
+				router.replace(`/OrderSuccess${newOrderId ? `?orderId=${newOrderId}` : ''}`);
 			} else {
 				Toast.show({
 					type: 'error',

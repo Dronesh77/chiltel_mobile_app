@@ -203,6 +203,13 @@ const Layout = () => {
                       headerShown: false,
                     }}
                   />
+                  <Tabs.Screen
+                    name="ServiceCart"
+                    options={{
+                      href: null,
+                      headerShown: false,
+                    }}
+                  />
                 </Tabs>
               </View>
               </CartProvider>

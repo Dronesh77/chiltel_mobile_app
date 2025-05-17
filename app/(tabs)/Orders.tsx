@@ -10,13 +10,14 @@ import {
   FlatList,
   Dimensions,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import axios from "axios";
 import Toast from "react-native-toast-message";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Product {
   _id: string;
@@ -70,6 +71,7 @@ interface CartContextType {
 
 const Orders = () => {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
   const { isAuthenticated, user, sessionId } = useAuth();
   const cartContext = useCart();
@@ -80,6 +82,11 @@ const Orders = () => {
   const [serviceData, setServiceData] = useState<ServiceItem[]>([]);
   const [view, setView] = useState("products"); 
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+
+  const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+  if (!API_BASE_URL) {
+    throw new Error('EXPO_PUBLIC_API_URL is not set. Please check your .env file and restart Expo.');
+  }
 
   const toggleRow = (rowId: string) => {
     setExpandedRow(expandedRow === rowId ? null : rowId);
@@ -92,15 +99,14 @@ const Orders = () => {
         return null;
       }
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/order/userorders`,
+        `${API_BASE_URL}/api/order/userorders`,
         {},
         { headers: { Authorization: sessionId } }
       );
-
+      console.log('Orders API response:', response.data);
       if (response.data.success) {
         const allProductOrders: OrderItem[] = [];
         const allServiceOrders: ServiceItem[] = [];
-
         response.data.orders.forEach((order: any) => {
           // Extract product orders
           order.products.forEach((item: any) => {
@@ -110,7 +116,6 @@ const Orders = () => {
             item["date"] = order.updatedAt;
             allProductOrders.push(item);
           });
-
           // Extract service orders
           order.services.forEach((service: any) => {
             service["status"] = order.status;
@@ -119,7 +124,6 @@ const Orders = () => {
             allServiceOrders.push(service);
           });
         });
-
         setOrderData(allProductOrders);
         setServiceData(allServiceOrders.reverse());
       }
@@ -137,7 +141,7 @@ const Orders = () => {
   const handleCancelOrder = async (orderId: string) => {
     try {
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/order/cancelorder`,
+        `${API_BASE_URL}/api/order/cancelOrder`,
         { orderId },
         { headers: { Authorization: sessionId } }
       );
@@ -161,7 +165,7 @@ const Orders = () => {
   const handleCancelService = async (serviceItem: ServiceItem) => {
     try {
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/order/cancelservice`,
+        `${API_BASE_URL}/api/order/cancelservice`,
         { serviceId: serviceItem._id },
         { headers: { Authorization: sessionId } }
       );
@@ -194,7 +198,7 @@ const Orders = () => {
   const handleAdditionalWorkPayment = async (serviceId: string) => {
     try {
       const response = await axios.post(
-        `${process.env.EXPO_PUBLIC_API_URL}/api/services/additionalworkpayment`,
+        `${API_BASE_URL}/api/services/additionalworkpayment`,
         { serviceId },
         { headers: { Authorization: sessionId } }
       );
@@ -234,6 +238,12 @@ const Orders = () => {
     loadOrderData();
   }, [sessionId]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      loadOrderData();
+    }, [sessionId])
+  );
+
   if (ordersLoading) {
   return (
       <View style={styles.loadingContainer}>
@@ -242,117 +252,103 @@ const Orders = () => {
     );
   }
 
-  const renderProductOrder = ({ item }: { item: OrderItem }) => (
+  // Group orders by orderId
+  const groupOrdersByOrderId = (orders: any[]) => {
+    const grouped: Record<string, any> = {};
+    orders.forEach((item) => {
+      if (!grouped[item.orderId]) {
+        grouped[item.orderId] = {
+          orderId: item.orderId,
+          date: item.date,
+          status: item.status,
+          paymentMethod: item.paymentMethod,
+          products: [],
+        };
+      }
+      grouped[item.orderId].products.push(item);
+    });
+    return Object.values(grouped);
+  };
+
+  const groupedProductOrders = groupOrdersByOrderId(orderData);
+
+  const renderGroupedOrder = ({ item }: { item: any }) => (
     <View style={styles.orderItem}>
       <View style={styles.orderHeader}>
-        <Image
-          source={{ uri: item.product?.thumbnail || "https://via.placeholder.com/100" }}
-          style={styles.productImage}
-        />
-        <View style={styles.orderInfo}>
-          <Text style={styles.productName}>{item.product?.name}</Text>
-          <Text style={styles.orderNumber}>Order #{item.orderId?.slice(-6)}</Text>
-        </View>
-      </View>
-
-      <View style={styles.orderDetails}>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Price:</Text>
-          <Text style={styles.detailValue}>₹{item.price}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Quantity:</Text>
-          <Text style={styles.detailValue}>{item.quantity}</Text>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Date:</Text>
-          <Text style={styles.detailValue}>
-                          {new Date(item.date).toLocaleDateString()}
+        <Text style={styles.productName}>Order #{item.orderId?.slice(-6)}</Text>
+        <Text style={styles.orderNumber}>{new Date(item.date).toLocaleDateString()}</Text>
+        <View style={[styles.statusBadge, {
+          backgroundColor:
+            item.status === "PENDING"
+              ? "#FEF3C7"
+              : item.status === "ORDERED"
+              ? "#DBEAFE"
+              : item.status === "DELIVERED"
+              ? "#D1FAE5"
+              : item.status === "CANCELLED"
+              ? "#FEE2E2"
+              : "#F3F4F6",
+        }]}
+        >
+          <Text style={[styles.statusText, {
+            color:
+              item.status === "PENDING"
+                ? "#92400E"
+                : item.status === "ORDERED"
+                ? "#1E40AF"
+                : item.status === "DELIVERED"
+                ? "#065F46"
+                : item.status === "CANCELLED"
+                ? "#991B1B"
+                : "#374151",
+          }]}
+          >
+            {item.status}
           </Text>
         </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Status:</Text>
-          <View
-            style={[
-              styles.statusBadge,
-              {
-                backgroundColor:
-                  item.status === "PENDING"
-                    ? "#FEF3C7"
-                    : item.status === "ORDERED"
-                    ? "#DBEAFE"
-                    : item.status === "DELIVERED"
-                    ? "#D1FAE5"
-                    : item.status === "CANCELLED"
-                    ? "#FEE2E2"
-                    : "#F3F4F6",
-              },
-            ]}
+        <View style={[styles.paymentBadge, {
+          backgroundColor:
+            item.paymentMethod === "cod"
+              ? "#F3F4F6"
+              : item.paymentMethod === "Razorpay"
+              ? "#E0E7FF"
+              : "#F3F4F6",
+        }]}
+        >
+          <Text style={[styles.paymentText, {
+            color:
+              item.paymentMethod === "cod"
+                ? "#374151"
+                : item.paymentMethod === "Razorpay"
+                ? "#3730A3"
+                : "#374151",
+          }]}
           >
-            <Text
-              style={[
-                styles.statusText,
-                {
-                  color:
-                              item.status === "PENDING"
-                      ? "#92400E"
-                                : item.status === "ORDERED"
-                      ? "#1E40AF"
-                                  : item.status === "DELIVERED"
-                      ? "#065F46"
-                                    : item.status === "CANCELLED"
-                      ? "#991B1B"
-                      : "#374151",
-                },
-              ]}
-                          >
-                            {item.status}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.detailRow}>
-          <Text style={styles.detailLabel}>Payment:</Text>
-          <View
-            style={[
-              styles.paymentBadge,
-              {
-                backgroundColor:
-                  item.paymentMethod === "cod"
-                    ? "#F3F4F6"
-                    : item.paymentMethod === "Razorpay"
-                    ? "#E0E7FF"
-                    : "#F3F4F6",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.paymentText,
-                {
-                  color:
-                              item.paymentMethod === "cod"
-                      ? "#374151"
-                                : item.paymentMethod === "Razorpay"
-                      ? "#3730A3"
-                      : "#374151",
-                },
-              ]}
-                          >
-                            {item.paymentMethod === "cod" ? "Cash on Delivery" : item.paymentMethod || "N/A"}
-            </Text>
-          </View>
+            {item.paymentMethod === "cod" ? "Cash on Delivery" : item.paymentMethod || "N/A"}
+          </Text>
         </View>
       </View>
-
+      {/* List all products in this order */}
+      {item.products.map((prod: any, idx: number) => (
+        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+          <Image
+            source={{ uri: prod.product?.thumbnail || prod.thumbnail || "https://via.placeholder.com/100" }}
+            style={styles.productImage}
+          />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.productName}>{prod.product?.name || prod.name}</Text>
+            <Text style={styles.detailValue}>Price: ₹{prod.price}</Text>
+            <Text style={styles.detailValue}>Quantity: {prod.quantity}</Text>
+          </View>
+        </View>
+      ))}
+      {/* Actions (Track/Cancel) for the order */}
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.trackButton}>
           <Text style={styles.trackButtonText}>Track</Text>
         </TouchableOpacity>
-                          {item.status !== "CANCELLED" && item.status !== "DELIVERED" && (
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={() => handleCancelOrder(item.orderId)}
-          >
+        {item.status !== "CANCELLED" && item.status !== "DELIVERED" && (
+          <TouchableOpacity style={styles.cancelButton} onPress={() => handleCancelOrder(item.orderId)}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
         )}
@@ -493,7 +489,7 @@ const Orders = () => {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top - 60 }]}>
       <View style={styles.header}>
         <Text style={styles.title}>MY ORDERS</Text>
         <View style={styles.titleUnderline} />
@@ -526,7 +522,7 @@ const Orders = () => {
       </View>
 
       {view === "products" ? (
-        orderData.length === 0 ? (
+        groupedProductOrders.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="cube-outline" size={64} color="#9CA3AF" />
             <Text style={styles.emptyTitle}>No product orders yet</Text>
@@ -542,9 +538,9 @@ const Orders = () => {
           </View>
         ) : (
           <FlatList
-            data={orderData}
-            renderItem={renderProductOrder}
-            keyExtractor={(item: OrderItem) => item.orderId}
+            data={groupedProductOrders}
+            renderItem={renderGroupedOrder}
+            keyExtractor={(item: any) => item.orderId}
             contentContainerStyle={styles.listContainer}
           />
         )
