@@ -266,8 +266,11 @@ const ProductListing = () => {
       router.push('/login');
       return;
     }
-    // Product buying logic goes here
-    console.log('Buy now:', item.name);
+    // Navigate to BuyNow page with product details
+    router.push({
+      pathname: '/BuyNow',
+      params: { product: JSON.stringify(item) }
+    });
   };
 
   const handleAddToCart = async (item: Product) => {
@@ -552,7 +555,7 @@ const ProductListing = () => {
                     onPress={() => handleBuyNow(item)}
                   >
                     <Ionicons name="bag-outline" size={16} color="#FFFFFF" />
-                    <Text className="text-xs text-white font-medium ml-1">Buy</Text>
+                    <Text className="text-xs text-white font-medium ml-1">Buy Now</Text>
                   </TouchableOpacity>
                 </View>
               </View>

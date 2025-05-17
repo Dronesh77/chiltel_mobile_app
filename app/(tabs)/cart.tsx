@@ -190,7 +190,7 @@ const CartScreen = () => {
               </View>
 
               <TouchableOpacity
-                onPress={() => router.push('/')}
+                onPress={() => router.push('/PlaceOrder')}
                 className="bg-blue-600 rounded-lg p-4 flex-row justify-center items-center mt-6"
               >
                 <Text className="text-white font-semibold text-lg mr-3">PLACE ORDER</Text>
