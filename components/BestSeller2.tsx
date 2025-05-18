@@ -139,6 +139,7 @@ const BestSeller2 = () => {
         >
           {categories.map((category, i) => (
             <View 
+              key={`category-${i}`}
               style={{ width: screenWidth }} 
               className="px-4"
             >

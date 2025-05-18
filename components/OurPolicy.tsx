@@ -39,11 +39,11 @@ const OurPolicy: React.FC = () => {
       <View className="flex flex-col">
         {policies.map((policy, index) => (
           <LinearGradient
-            // key={index}
+            key={`policy-${index}`}
             colors={policy.colors}
             start={[0, 0]}
             end={[1, 0]}
-            style={{ borderRadius: 16, padding: 20, marginBottom: 20 }} // padding and margin between cards
+            style={{ borderRadius: 16, padding: 20, marginBottom: 20 }}
           >
             <View className="flex flex-col">
               <View>{policy.icon}</View>

@@ -57,7 +57,7 @@ const Partner: React.FC = () => {
         <Animated.View style={{ flexDirection: "row", transform: [{ translateX: scrollInterpolate }] }}>
           {[...partnerLogos, ...partnerLogos].map((logo, index) => (
             <Image
-              // key={`upper-${index}`}
+              key={`upper-${index}`}
               source={logo.src}
               className="w-24 h-24 mx-4"
               accessible={true}
@@ -77,7 +77,7 @@ const Partner: React.FC = () => {
         >
           {[...partnerLogos, ...partnerLogos].map((logo, index) => (
             <Image
-              // key={`lower-${index}`}
+              key={`lower-${index}`}
               source={logo.src}
               className="w-24 h-24 mx-4"
               accessible={true}

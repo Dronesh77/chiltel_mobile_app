@@ -95,12 +95,14 @@ const Orders = () => {
   const loadOrderData = async () => {
     setOrdersLoading(true);
     try {
-      if (!sessionId) {
+      if (!sessionId || !user?.phoneNumber) {
+        console.log('Missing sessionId or phoneNumber:', { sessionId, phoneNumber: user?.phoneNumber });
         return null;
       }
+      console.log('Fetching orders with phone:', user.phoneNumber);
       const response = await axios.post(
         `${API_BASE_URL}/api/order/userorders`,
-        {},
+        { phone: user.phoneNumber },
         { headers: { Authorization: sessionId } }
       );
       console.log('Orders API response:', response.data);
@@ -109,30 +111,42 @@ const Orders = () => {
         const allServiceOrders: ServiceItem[] = [];
         response.data.orders.forEach((order: any) => {
           // Extract product orders
-          order.products.forEach((item: any) => {
-            item["orderId"] = order._id;
-            item["status"] = order.status;
-            item["paymentMethod"] = order.paymentDetails.method;
-            item["date"] = order.updatedAt;
-            allProductOrders.push(item);
-          });
+          if (order.products && order.products.length > 0) {
+            order.products.forEach((item: any) => {
+              allProductOrders.push({
+                orderId: order._id,
+                product: item.product,
+                price: item.price,
+                quantity: item.quantity,
+                date: order.updatedAt,
+                status: order.status,
+                paymentMethod: order.paymentDetails?.method || 'N/A'
+              });
+            });
+          }
           // Extract service orders
-          order.services.forEach((service: any) => {
-            service["status"] = order.status;
-            service["paymentMethod"] = order.paymentDetails.method;
-            service["date"] = order.updatedAt;
-            allServiceOrders.push(service);
-          });
+          if (order.services && order.services.length > 0) {
+            order.services.forEach((service: any) => {
+              allServiceOrders.push({
+                _id: service._id,
+                services: [service],
+                price: service.price,
+                scheduledFor: order.updatedAt,
+                status: order.status,
+                paymentStatus: order.paymentDetails?.paidAt ? 'PAID' : 'PENDING'
+              });
+            });
+          }
         });
         setOrderData(allProductOrders);
         setServiceData(allServiceOrders.reverse());
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error fetching orders:', error.response?.data || error);
       Toast.show({
         type: "error",
-        text1: "Something went wrong",
+        text1: error.response?.data?.message || "Failed to load orders",
       });
-      console.error("Error while fetching orders: ", error);
     } finally {
       setOrdersLoading(false);
     }
@@ -140,25 +154,43 @@ const Orders = () => {
 
   const handleCancelOrder = async (orderId: string) => {
     try {
+      console.log('Attempting to cancel order:', orderId);
       const response = await axios.post(
-        `${API_BASE_URL}/api/order/cancelOrder`,
+        `${API_BASE_URL}/api/order/cancel`,
         { orderId },
-        { headers: { Authorization: sessionId } }
+        { 
+          headers: { 
+            Authorization: sessionId,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
 
+      console.log('Cancel order response:', response.data);
+
       if (response.data.success) {
+        setOrderData(prevOrders => 
+          prevOrders.filter(order => order.orderId !== orderId)
+        );
+        
         Toast.show({
           type: "success",
           text1: "Order cancelled successfully",
         });
+        
         loadOrderData();
+      } else {
+        Toast.show({
+          type: "error",
+          text1: response.data.message || "Failed to cancel order",
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Full error:', error);
       Toast.show({
         type: "error",
-        text1: "Something went wrong",
+        text1: error.response?.data?.message || "Failed to cancel order",
       });
-      console.error("Error while cancelling order: ", error);
     }
   };
 

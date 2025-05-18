@@ -47,6 +47,13 @@ export default function ProfileScreen() {
             <Text className="text-base text-gray-700">Edit Profile</Text>
           </TouchableOpacity>
           
+          <TouchableOpacity 
+            className="py-3 px-4 border-b border-gray-200"
+            onPress={() => router.push('/Orders')}
+          >
+            <Text className="text-base text-gray-700">My Orders</Text>
+          </TouchableOpacity>
+          
           <TouchableOpacity className="py-3 px-4 border-b border-gray-200">
             <Text className="text-base text-gray-700">Change Password</Text>
           </TouchableOpacity>

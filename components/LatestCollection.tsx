@@ -123,7 +123,7 @@ const LatestCollection = () => {
         >
           {categories.map((category, i) => (
             <View
-              // key={`category-${i}`}
+              key={`category-${i}`}
               style={{ width: screenWidth }}
               className="px-4"
             >

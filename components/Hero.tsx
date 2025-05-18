@@ -275,7 +275,7 @@ const Hero: React.FC = () => {
           <View className="mt-5 flex-row flex-wrap justify-between">
             {(stats as Stat[]).map((stat, index) => (
               <View 
-                // key={index}
+                key={`stat-${index}`}
                 className={`flex-row items-center ${screenWidth < 640 ? 'w-full mb-4' : 'w-[48%] mb-3'}`}
               >
                 <View className={`w-12 h-12 rounded-full justify-center items-center mr-3 ${getColorClass(stat.color)}`}>

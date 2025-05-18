@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { Text } from "react-native";
 
 interface Service {
   _id: string;
@@ -256,10 +257,10 @@ const ServiceCartView: React.FC<ServiceCartViewProps> = ({
                         <div className="grid grid-cols-2 gap-4">
                           {/* Status */}
                           <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">
+                            <Text className="font-semibold text-gray-700">
                               Status
-                            </span>
-                            <span
+                            </Text>
+                            <Text
                               className={`px-2 py-1 mt-1 text-sm font-medium text-center rounded-md ${
                                 serviceItem.status === "CREATED"
                                   ? "bg-gray-200 text-gray-700"
@@ -276,15 +277,15 @@ const ServiceCartView: React.FC<ServiceCartViewProps> = ({
                               serviceItem.status == "ASSIGNED"
                                 ? "RIDER ON THE WAY"
                                 : serviceItem.status}
-                            </span>
+                            </Text>
                           </div>
 
                           {/* Payment Status */}
                           <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">
+                            <Text className="font-semibold text-gray-700">
                               Payment Status
-                            </span>
-                            <span
+                            </Text>
+                            <Text
                               className={`px-2 py-1 mt-1 text-sm font-medium text-center rounded-md ${
                                 serviceItem.paymentStatus === "PENDING"
                                   ? "bg-yellow-100 text-yellow-700"
@@ -296,49 +297,49 @@ const ServiceCartView: React.FC<ServiceCartViewProps> = ({
                               }`}
                             >
                               {serviceItem.paymentStatus}
-                            </span>
+                            </Text>
                           </div>
 
                           {/* Remarks */}
                           <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">
+                            <Text className="font-semibold text-gray-700">
                               Remarks
-                            </span>
-                            <span className="text-gray-600">
+                            </Text>
+                            <Text className="text-gray-600">
                               {serviceItem.remarks}
-                            </span>
+                            </Text>
                           </div>
 
                           {/* User Information */}
                           <div className="flex flex-col">
-                            <span className="font-semibold text-gray-700">
+                            <Text className="font-semibold text-gray-700">
                               Customer
-                            </span>
-                            <span className="text-gray-600">
+                            </Text>
+                            <Text className="text-gray-600">
                               {serviceItem.user?.name || 'N/A'}
-                            </span>
+                            </Text>
                           </div>
 
                           {/* Happy Code - if exists */}
                           {serviceItem.OTP && (
                             <div className="flex flex-col">
-                              <span className="font-semibold text-gray-700">
+                              <Text className="font-semibold text-gray-700">
                                 Happy Code:
-                              </span>
-                              <span className="text-gray-600">
+                              </Text>
+                              <Text className="text-gray-600">
                                 {serviceItem.OTP}
-                              </span>
+                              </Text>
                             </div>
                           )}
 
                           {/* Location */}
                           <div className="flex flex-col col-span-2">
-                            <span className="font-semibold text-gray-700">
+                            <Text className="font-semibold text-gray-700">
                               Service Location
-                            </span>
-                            <span className="text-gray-600">
+                            </Text>
+                            <Text className="text-gray-600">
                               {serviceItem.userLocation?.address}
-                            </span>
+                            </Text>
                           </div>
                         </div>
 

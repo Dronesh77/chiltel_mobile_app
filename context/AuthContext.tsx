@@ -5,6 +5,7 @@ import { View, Text, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Toast from 'react-native-toast-message';
 import { User } from '@/app/types';
+import { useRouter } from 'expo-router';
 
 // Environment variables
 const BACKEND_URL = process.env.BACKEND_URL;
@@ -41,6 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const navigation = useNavigation();
+  const router = useRouter();
 
   axios.defaults.withCredentials = true;
 
@@ -88,7 +90,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                   id: user.$id,
                   name: user.name || 'User',
                   email: user.email || '',
-                  phone: user.phone || ''
+                  phone: user.phone || '',
+                  phoneNumber: user.phone || ''
                 });
               }
             }
@@ -101,7 +104,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 id: user.$id,
                 name: user.name || 'User',
                 email: user.email || '',
-                phone: user.phone || ''
+                phone: user.phone || '',
+                phoneNumber: user.phone || ''
               });
             }
           }
@@ -217,12 +221,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await account.deleteSession("current");
       setUser(null);
       setIsAuthenticated(false);
+      setSessionId(null);
       Toast.show({
         type: 'success',
         text1: 'Success',
         text2: 'Logged out successfully'
       });
-      navigation.navigate('Login' as never);
+      router.replace('/login');
     } catch (error) {
       console.error("Error logging out:", error);
       Toast.show({

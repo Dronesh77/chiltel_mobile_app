@@ -75,6 +75,7 @@ export interface User {
   name: string;
   email: string;
   phone?: string;
+  phoneNumber: string;
   address?: {
     street: string;
     city: string;

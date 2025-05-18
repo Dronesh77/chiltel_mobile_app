@@ -12,53 +12,75 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
+import { useAuth } from '@/context/AuthContext';
 
 const OrderSuccess = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(20);
   const progressAnim = new Animated.Value(1);
   const orderId = params.orderId;
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(!!orderId);
+  const { sessionId, user } = useAuth();
 
   useEffect(() => {
-    if (orderId) {
+    if (orderId && sessionId && user?.phoneNumber) {
       setLoading(true);
-      axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/order/userorders`, {}, {})
+      console.log('Fetching order with phone:', user.phoneNumber);
+      axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/api/order/userorders`,
+        { phone: user.phoneNumber },
+        { headers: { Authorization: sessionId } }
+      )
         .then(res => {
+          console.log('Order response:', res.data);
           if (res.data.success && res.data.orders) {
             const found = res.data.orders.find((o: any) => o._id === orderId);
+            console.log('Found order:', found);
             setOrder(found || null);
           }
         })
-        .catch(() => setOrder(null))
+        .catch((error) => {
+          console.error('Error fetching order:', error.response?.data || error);
+          setOrder(null);
+        })
         .finally(() => setLoading(false));
     }
-  }, [orderId]);
+  }, [orderId, sessionId, user?.phoneNumber]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          router.replace(`/Orders${orderId ? `?orderId=${orderId}` : ''}`);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    let timer: NodeJS.Timeout;
+    
+    const startCountdown = () => {
+      timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            router.replace(`/Orders${orderId ? `?orderId=${orderId}` : ''}`);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
 
-    // Animate progress bar
-    Animated.timing(progressAnim, {
-      toValue: 0,
-      duration: 5000,
-      useNativeDriver: false,
-    }).start();
+      // Animate progress bar
+      Animated.timing(progressAnim, {
+        toValue: 0,
+        duration: 20000,
+        useNativeDriver: false,
+      }).start();
+    };
 
-    return () => clearInterval(timer);
-  }, []);
+    startCountdown();
+
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [orderId]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
