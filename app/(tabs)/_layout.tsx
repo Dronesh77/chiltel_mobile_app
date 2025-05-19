@@ -3,12 +3,7 @@ import { View, Image, Text, Platform } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-
 import Header from '@/components/Header/Header';
-import ShopContextProvider from '@/context/ShopContext';
-import { AuthProvider } from '@/context/AuthContext';
-import { ServiceCartProvider } from '@/context/ServiceCartContext';
-import { CartProvider } from '@/context/CartContext';
 
 const Layout = () => {
   const insets = useSafeAreaInsets();
@@ -48,174 +43,166 @@ const Layout = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff' }}>
-      <AuthProvider>
-      <ShopContextProvider>
-          <ServiceCartProvider>
-            <CartProvider>
-          <View className="flex-1">
-                <Header />
-                <Tabs
-                  screenOptions={{
-                    tabBarShowLabel: false,
-                    tabBarActiveTintColor: '#2874F0',
-                    tabBarInactiveTintColor: '#828282',
-                    tabBarItemStyle: {
-                      width: "100%",
-                      height: '100%',
-                      justifyContent: "flex-start",
-                      alignItems: "center",
-                      paddingTop: 6,
-                      paddingBottom: 0,
-                    },
-                    tabBarLabelStyle: {
-                      fontSize: 9,               // reduce font size a bit
-                      textAlign: 'center',
-                      includeFontPadding: false,  // avoid extra vertical padding
-                    },
-                    tabBarStyle: {
-                      backgroundColor: "#fff",
-                      height: 60,
-                      borderTopWidth: 1,
-                      borderTopColor: "#e0e0e0",
-                      position: "absolute",
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      elevation: 0,
-                      shadowOpacity: 0,
-                    },
-                  }}
-                >
-                  <Tabs.Screen
-                    name="index"
-                    options={{
-                      title: 'Home',
-                      headerShown: false,
-                      tabBarIcon: ({ color, focused }) => renderTabIcon('home-outline', 'Home', focused, color),
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="chillMart"
-                    options={{
-                      title: 'ChillMart',
-                      headerShown: false,
-                      tabBarIcon: ({ color, focused }) => renderTabIcon('cart-outline', 'ChillMart', focused, color),
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="about"
-                    options={{
-                      title: 'About',
-                      headerShown: false,
-                      tabBarIcon: ({ color, focused }) => renderTabIcon('information-circle-outline', 'About', focused, color),
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="contact"
-                    options={{
-                      title: 'Contact',
-                      headerShown: false,
-                      tabBarIcon: ({ color, focused }) => renderTabIcon('call-outline', 'Contact', focused, color),
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="blog"
-                    options={{
-                      title: 'Blog',
-                      headerShown: false,
-                      tabBarIcon: ({ color, focused }) => renderTabIcon('document-text-outline', 'Blog', focused, color),
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="ProductListing"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="ServiceModel"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="Collection"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="login"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="profile"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="cart"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="BuyNow"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="Orders"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="checkout"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="OrderSuccess"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="PlaceOrder"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                  <Tabs.Screen
-                    name="ServiceCart"
-                    options={{
-                      href: null,
-                      headerShown: false,
-                    }}
-                  />
-                </Tabs>
-              </View>
-              </CartProvider>
-          </ServiceCartProvider>
-      </ShopContextProvider>
-      </AuthProvider>
+      <View className="flex-1">
+        <Header />
+        <Tabs
+          screenOptions={{
+            tabBarShowLabel: false,
+            tabBarActiveTintColor: '#2874F0',
+            tabBarInactiveTintColor: '#828282',
+            tabBarItemStyle: {
+              width: "100%",
+              height: '100%',
+              justifyContent: "flex-start",
+              alignItems: "center",
+              paddingTop: 6,
+              paddingBottom: 0,
+            },
+            tabBarLabelStyle: {
+              fontSize: 9,
+              textAlign: 'center',
+              includeFontPadding: false,
+            },
+            tabBarStyle: {
+              backgroundColor: "#fff",
+              height: 60,
+              borderTopWidth: 1,
+              borderTopColor: "#e0e0e0",
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              elevation: 0,
+              shadowOpacity: 0,
+            },
+          }}
+        >
+          <Tabs.Screen
+            name="index"
+            options={{
+              title: 'Home',
+              headerShown: false,
+              tabBarIcon: ({ color, focused }) => renderTabIcon('home-outline', 'Home', focused, color),
+            }}
+          />
+          <Tabs.Screen
+            name="chillMart"
+            options={{
+              title: 'ChillMart',
+              headerShown: false,
+              tabBarIcon: ({ color, focused }) => renderTabIcon('cart-outline', 'ChillMart', focused, color),
+            }}
+          />
+          <Tabs.Screen
+            name="about"
+            options={{
+              title: 'About',
+              headerShown: false,
+              tabBarIcon: ({ color, focused }) => renderTabIcon('information-circle-outline', 'About', focused, color),
+            }}
+          />
+          <Tabs.Screen
+            name="contact"
+            options={{
+              title: 'Contact',
+              headerShown: false,
+              tabBarIcon: ({ color, focused }) => renderTabIcon('call-outline', 'Contact', focused, color),
+            }}
+          />
+          <Tabs.Screen
+            name="blog"
+            options={{
+              title: 'Blog',
+              headerShown: false,
+              tabBarIcon: ({ color, focused }) => renderTabIcon('document-text-outline', 'Blog', focused, color),
+            }}
+          />
+          <Tabs.Screen
+            name="ProductListing"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="ServiceModel"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="Collection"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="login"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="profile"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="cart"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="BuyNow"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="Orders"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="checkout"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="OrderSuccess"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="PlaceOrder"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+          <Tabs.Screen
+            name="ServiceCart"
+            options={{
+              href: null,
+              headerShown: false,
+            }}
+          />
+        </Tabs>
+      </View>
     </SafeAreaView>
   );
 };

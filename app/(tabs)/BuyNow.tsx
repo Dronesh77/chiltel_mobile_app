@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
 	View,
 	Text,
@@ -10,6 +10,7 @@ import {
 	ActivityIndicator,
 	Alert,
 	Platform,
+	Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
@@ -19,6 +20,8 @@ import Toast from 'react-native-toast-message';
 import { Ionicons } from '@expo/vector-icons';
 import CartTotal from '@/components/CartTotal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import RazorpayCheckout from 'react-native-razorpay';
+import { useStripe } from '@stripe/stripe-react-native';
 
 const BuyNow = () => {
 	const router = useRouter();
@@ -39,18 +42,65 @@ const BuyNow = () => {
 		phone: '',
 	});
 
-	// Parse product information from route params
+	// Parse product and service information from route params
 	const product = params.product ? JSON.parse(params.product as string) : null;
+	const serviceOrder = params.serviceOrder ? JSON.parse(params.serviceOrder as string) : null;
 	const isCartOrder = params.isCartOrder === 'true';
+	const isServiceOrder = params.isServiceOrder === 'true';
+	
 	const productAmount = product ? product.price * (1 - product.discount) : 0;
-	const shippingFee = 299;
+	const serviceAmount = serviceOrder ? parseFloat(serviceOrder.totalAmount) : 0;
+	const shippingFee = isServiceOrder ? 0 : 299; // No shipping fee for services
 
-	// Calculate total amount based on whether it's a cart order or single product
-	const totalAmount = isCartOrder ? cartAmount + shippingFee : productAmount + shippingFee;
+	// Calculate total amount based on order type
+	const totalAmount = isServiceOrder 
+		? serviceAmount 
+		: isCartOrder 
+			? cartAmount + shippingFee 
+			: productAmount + shippingFee;
+
+	// If it's a service order, pre-fill address from service order
+	useEffect(() => {
+		if (isServiceOrder && serviceOrder?.address) {
+			// Only update if the address fields are empty or different
+			const shouldUpdate = !formData.street || 
+				!formData.city || 
+				!formData.state || 
+				!formData.zipcode ||
+				formData.street !== serviceOrder.address.street ||
+				formData.city !== serviceOrder.address.city ||
+				formData.state !== serviceOrder.address.state ||
+				formData.zipcode !== serviceOrder.address.zipCode;
+
+			if (shouldUpdate) {
+				setFormData(prev => ({
+					...prev,
+					street: serviceOrder.address.street || '',
+					city: serviceOrder.address.city || '',
+					state: serviceOrder.address.state || '',
+					zipcode: serviceOrder.address.zipCode || '',
+				}));
+			}
+		}
+	}, [isServiceOrder, serviceOrder?.address]); // Only depend on these values
 
 	const [pincodeLoading, setPincodeLoading] = useState(false);
 	const [cityOptions, setCityOptions] = useState([]);
 	const [showCityDropdown, setShowCityDropdown] = useState(false);
+
+	const { initPaymentSheet, presentPaymentSheet } = useStripe();
+
+	// Check authentication status
+	useEffect(() => {
+		if (!isAuthenticated || !sessionId) {
+			Toast.show({
+				type: 'info',
+				text1: 'Login Required',
+				text2: 'Please login to continue with your purchase',
+			});
+			router.push('/login');
+		}
+	}, [isAuthenticated, sessionId]);
 
 	const onChangeHandler = (name: string, value: string) => {
 		setFormData((data) => ({ ...data, [name]: value }));
@@ -122,6 +172,127 @@ const BuyNow = () => {
 			});
 		} finally {
 			setPincodeLoading(false);
+		}
+	};
+
+	const handleRazorpayPayment = async (orderData: any) => {
+		try {
+			setLoading(true);
+			// 1. Create Razorpay order from backend
+			const { data } = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/payment/razorpay/order`, {
+				amount: totalAmount * 100, // Razorpay expects paise
+				currency: 'INR',
+				receipt: `order_rcptid_${Date.now()}`,
+				...orderData,
+			});
+			if (!data || !data.id || !data.amount) {
+				Toast.show({ type: 'error', text1: 'Invalid Razorpay order response', text2: JSON.stringify(data) });
+				setLoading(false);
+				return;
+			}
+			const options = {
+				description: 'Order Payment',
+				image: 'https://api.chiltel.com/logo.png',
+				currency: 'INR',
+				key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID,
+				amount: data.amount,
+				order_id: data.id,
+				name: 'Chiltel',
+				prefill: {
+					email: formData.email,
+					contact: formData.phone,
+					name: `${formData.firstName} ${formData.lastName}`,
+				},
+				theme: { color: '#0066CC' },
+			};
+			RazorpayCheckout.open(options)
+				.then(async (paymentData: any) => {
+					await placeOrder({
+						...orderData,
+						paymentDetails: {
+							method: 'razorpay',
+							transactionId: paymentData.razorpay_payment_id,
+							paidAt: new Date(),
+						},
+					});
+				})
+				.catch((error: any) => {
+					Toast.show({ type: 'error', text1: 'Payment failed', text2: error.description });
+					setLoading(false);
+				});
+		} catch (error) {
+			let message = 'Try again later.';
+			if (error instanceof Error) {
+				message = error.message;
+			} else if (typeof error === 'string') {
+				message = error;
+			}
+			Toast.show({ type: 'error', text1: 'Razorpay error', text2: message });
+			setLoading(false);
+		}
+	};
+
+	const handleStripePayment = async (orderData: any) => {
+		try {
+			// 1. Create PaymentIntent from backend
+			const { data } = await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/api/payment/stripe/intent`, {
+				amount: totalAmount * 100, // Stripe expects smallest currency unit
+				currency: 'INR',
+			});
+			// 2. Initialize and present payment sheet
+			const init = await initPaymentSheet({
+				paymentIntentClientSecret: data.clientSecret,
+				merchantDisplayName: 'Chiltel',
+			});
+			if (init.error) throw init.error;
+			const { error } = await presentPaymentSheet();
+			if (!error) {
+				// Payment success, place order
+				await placeOrder({
+					...orderData,
+					paymentDetails: {
+						method: 'stripe',
+						transactionId: data.paymentIntentId,
+						paidAt: new Date(),
+					},
+				});
+			} else {
+				Toast.show({ type: 'error', text1: 'Payment failed', text2: error.message });
+				setLoading(false);
+			}
+		} catch (error: any) {
+			Toast.show({ type: 'error', text1: 'Stripe error', text2: error.message || 'Try again later.' });
+			setLoading(false);
+		}
+	};
+
+	const placeOrder = async (orderData: any) => {
+		try {
+			const response = await axios.post(
+				`${process.env.EXPO_PUBLIC_API_URL}/api/order/place`,
+				orderData,
+				{ headers: { Authorization: sessionId } }
+			);
+			if (response.data.success) {
+				Toast.show({
+					type: 'success',
+					text1: 'Order placed successfully!',
+				});
+				router.replace(`/OrderSuccess?orderId=${response.data.order?._id}`);
+			} else {
+				Toast.show({
+					type: 'error',
+					text1: response.data.message || 'Order failed',
+				});
+			}
+		} catch (error) {
+			Toast.show({
+				type: 'error',
+				text1: 'Error placing order',
+				text2: 'Please try again later',
+			});
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -204,8 +375,8 @@ const BuyNow = () => {
 				userId: user._id,
 				orderFirstName: formData.firstName,
 				orderLastName: formData.lastName,
-				orderType: "product",
-				products: isCartOrder 
+				orderType: isServiceOrder ? "service" : "product",
+				products: isServiceOrder ? [] : (isCartOrder 
 					? (cart?.items ?? []).map(item => ({
 						product: item._id,
 						quantity: item.quantity,
@@ -215,11 +386,11 @@ const BuyNow = () => {
 						product: product._id,
 						quantity: 1,
 						price: parseInt(product.price.toString()),
-					}],
+					}]),
+				services: isServiceOrder ? serviceOrder.services : [],
 				deliveryCharge: shippingFee,
-				services: [],
 				totalAmount: totalAmount,
-				status: "ORDERED",
+				status: isServiceOrder ? "REQUESTED" : "ORDERED",
 				paymentDetails: {
 					method: method,
 					transactionId: "",
@@ -234,36 +405,28 @@ const BuyNow = () => {
 				},
 				phone: formData.phone,
 				orderEmail: formData.email,
+				remarks: isServiceOrder ? serviceOrder.remarks : "",
+				scheduledFor: isServiceOrder ? serviceOrder.scheduledFor : null,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			};
 
-			// Send to backend
-			const response = await axios.post(
-				`${process.env.EXPO_PUBLIC_API_URL}/api/order/place`,
-				orderData,
-				{ headers: { Authorization: sessionId } }
-			);
-
-			if (response.data.success) {
-				Toast.show({
-					type: 'success',
-					text1: 'Order placed successfully!',
-				});
-				router.replace(`/OrderSuccess?orderId=${response.data.order?._id}`);
-			} else {
-				Toast.show({
-					type: 'error',
-					text1: response.data.message || 'Order failed',
-				});
+			if (method === 'razorpay') {
+				await handleRazorpayPayment(orderData);
+				return;
 			}
+			if (method === 'stripe') {
+				await handleStripePayment(orderData);
+				return;
+			}
+			// Default: COD
+			await placeOrder(orderData);
 		} catch (error) {
 			Toast.show({
 				type: 'error',
 				text1: 'Error placing order',
 				text2: 'Please try again later',
 			});
-		} finally {
 			setLoading(false);
 		}
 	};
@@ -405,13 +568,49 @@ const BuyNow = () => {
 							</View>
 							<Text style={styles.paymentText}>Cash on Delivery</Text>
 						</TouchableOpacity>
+						<TouchableOpacity
+							style={[
+								styles.paymentMethod,
+								method === 'razorpay' && styles.selectedPayment,
+							]}
+							onPress={() => setMethod('razorpay')}
+						>
+							<View style={styles.radioButton}>
+								{method === 'razorpay' && <View style={styles.radioButtonSelected} />}
+							</View>
+							<Text style={styles.paymentText}>Razorpay</Text>
+						</TouchableOpacity>
+						<TouchableOpacity
+							style={[
+								styles.paymentMethod,
+								method === 'stripe' && styles.selectedPayment,
+							]}
+							onPress={() => setMethod('stripe')}
+						>
+							<View style={styles.radioButton}>
+								{method === 'stripe' && <View style={styles.radioButtonSelected} />}
+							</View>
+							<Text style={styles.paymentText}>Stripe</Text>
+						</TouchableOpacity>
 					</View>
 				</View>
 
 				{/* Order Summary */}
 				<View style={styles.section}>
 					<Text style={styles.sectionTitle}>Order Summary</Text>
-					{isCartOrder ? (
+					{isServiceOrder ? (
+						<View>
+							<View style={styles.summaryRow}>
+								<Text style={styles.summaryLabel}>Services ({serviceOrder?.services?.length ?? 0})</Text>
+								<Text style={styles.summaryValue}>₹{serviceAmount.toLocaleString()}</Text>
+							</View>
+							<View style={styles.divider} />
+							<View style={styles.summaryRow}>
+								<Text style={styles.summaryTotal}>Total Amount</Text>
+								<Text style={styles.summaryTotal}>₹{totalAmount.toLocaleString()}</Text>
+							</View>
+						</View>
+					) : isCartOrder ? (
 						<View>
 							<View style={styles.summaryRow}>
 								<Text style={styles.summaryLabel}>Items ({cart?.items?.length ?? 0})</Text>
@@ -441,7 +640,9 @@ const BuyNow = () => {
 					{loading ? (
 						<ActivityIndicator color="#FFFFFF" />
 					) : (
-						<Text style={styles.placeOrderText}>Place Order</Text>
+						<Text style={styles.placeOrderText}>
+							{isServiceOrder ? 'Book Service' : 'Place Order'}
+						</Text>
 					)}
 				</TouchableOpacity>
 			</View>

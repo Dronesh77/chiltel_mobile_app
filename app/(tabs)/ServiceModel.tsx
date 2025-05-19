@@ -8,13 +8,13 @@ import {
   Modal,
   ActivityIndicator,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  BackHandler
 } from 'react-native';
 import axios from 'axios';
 import { ChevronDown, ChevronUp, Clock } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { useRouter } from 'expo-router';
 import { Toast } from 'react-native-toast-message/lib/src/Toast';
 
 import AuthContext from '@/context/AuthContext';
@@ -53,10 +53,10 @@ type Address = {
 const ServiceModal: React.FC<ServiceModalProps> = ({ isVisible, onClose, onBook, category }) => {
   if (!isVisible) return null;
 
+  const router = useRouter();
   const { user, isAuthenticated, sessionId } = useAuth();
   const { backendUrl } = useShop();
-  const { addToServiceCart } = useServiceCart();;
-  const navigation = useNavigation<StackNavigationProp<any>>();
+  const { addToServiceCart } = useServiceCart();
 
   const today = new Date();
   const [services, setServices] = useState<Record<string, Record<string, Service[]>>>({});
@@ -224,7 +224,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isVisible, onClose, onBook,
         type: 'error',
         text1: 'Please login to continue',
       });
-      navigation.navigate('Login');
+      router.push('/login');
       return;
     }
 
@@ -244,87 +244,43 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isVisible, onClose, onBook,
       return;
     }
 
-    setIsLoading(true);
+    const totalPrice = scheduleService?.services.reduce(
+      (sum, service) => sum + service.price * service.count, 0
+    ) || 0;
+
+    const serviceOrderData = {
+      services: scheduleService?.services.map(service => ({
+        serviceId: service.serviceId,
+        count: service.count,
+        price: service.price
+      })) || [],
+      totalAmount: (totalPrice * 1.18).toFixed(2),
+      address: {
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        zipCode: address.zipCode,
+      },
+      remarks,
+      scheduledFor: new Date(`${selectedDay}T${selectedTime}:00`).toISOString(),
+    };
+
     try {
-      const totalPrice = scheduleService?.services.reduce(
-        (sum, service) => sum + service.price * service.count, 0
-      ) || 0;
-
-      let orderData = {
-        user: user?.id,
-        orderType: "service",
-        products: [],
-        services: scheduleService?.services.map(service => ({
-          serviceId: service.serviceId,
-          count: service.count,
-          price: service.price
-        })) || [],
-        totalAmount: (totalPrice * 1.18).toFixed(2),
-        status: "REQUESTED",
-        paymentDetails: {
-          method: "Razorpay",
-          transactionId: "",
-          paidAt: null,
-        },
-        address: {
-          street: address.street,
-          city: address.city,
-          state: address.state,
-          zipCode: address.zipCode,
-        },
-        remarks,
-        scheduledFor: new Date(`${selectedDay}T${selectedTime}:00`).toISOString(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const responseRazorpay = await axios.post(
-        `${backendUrl}/api/order/razorpay`,
-        orderData,
-        {
-          headers: { Authorization: sessionId }
+      router.push({
+        pathname: '/BuyNow',
+        params: {
+          serviceOrder: JSON.stringify(serviceOrderData),
+          isServiceOrder: 'true'
         }
-      );
-
-      if (responseRazorpay.data.success) {
-        // Here you would typically integrate with Razorpay
-        // For now, we'll simulate a successful payment
-        const paymentId = "simulated_payment_id";
-        
-        // Update the order with payment details
-        const updateResponse = await axios.post(
-          `${backendUrl}/api/order/updatepayment`,
-          {
-            orderId: responseRazorpay.data.orderId,
-            paymentId,
-            status: "PAID"
-          },
-          {
-            headers: { Authorization: sessionId }
-          }
-        );
-
-        if (updateResponse.data.success) {
-          Toast.show({
-            type: 'success',
-            text1: 'Service booked successfully',
-          });
-          onBook();
-          navigation.navigate('Orders', { view: 'services' });
-        } else {
-          throw new Error('Failed to update payment status');
-        }
-      } else {
-        throw new Error('Failed to create order');
-      }
-    } catch (error: any) {
-      console.error('Payment error:', error);
+      });
+      onClose(); // Close the modal after successful navigation
+    } catch (error) {
+      console.error('Navigation error:', error);
       Toast.show({
         type: 'error',
-        text1: error.message || 'Payment failed',
+        text1: 'Failed to proceed to payment',
+        text2: 'Please try again'
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -415,6 +371,21 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isVisible, onClose, onBook,
   const totalServices = scheduleService?.services.reduce(
     (sum, service) => sum + service.count, 0
   ) || 0;
+
+  // Add useEffect for handling back button press
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (scheduleService) {
+        setScheduleService(null);
+        setServiceCounts({});
+        return true; // Prevent default behavior
+      }
+      onClose(); // Call onClose when no services are selected
+      return true; // Prevent default behavior
+    });
+
+    return () => backHandler.remove();
+  }, [scheduleService, onClose]);
 
   return (
     <Modal
