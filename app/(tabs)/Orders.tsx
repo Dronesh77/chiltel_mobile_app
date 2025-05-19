@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   FlatList,
   Dimensions,
+  Alert,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
@@ -62,6 +63,8 @@ interface ServiceItem {
   additionalWorkPayment?: boolean;
   completedAt?: string;
   remarks?: string;
+  userLocation?: string;
+  OTP?: string;
 }
 
 interface CartContextType {
@@ -80,16 +83,44 @@ const Orders = () => {
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [orderData, setOrderData] = useState<OrderItem[]>([]);
   const [serviceData, setServiceData] = useState<ServiceItem[]>([]);
-  const [view, setView] = useState("products"); 
+  const [view, setView] = useState(params.view || "products"); 
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const { cart } = useCart();
 
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
   if (!API_BASE_URL) {
     throw new Error('EXPO_PUBLIC_API_URL is not set. Please check your .env file and restart Expo.');
   }
 
+  // Update view when params change
+  useEffect(() => {
+    if (params.view) {
+      setView(params.view as string);
+    }
+  }, [params.view]);
+
   const toggleRow = (rowId: string) => {
     setExpandedRow(expandedRow === rowId ? null : rowId);
+  };
+
+  // Add this new function to filter out old cancelled orders
+  const filterOutOldCancelledOrders = (orders: OrderItem[]) => {
+    const oneMinuteAgo = new Date();
+    oneMinuteAgo.setMinutes(oneMinuteAgo.getMinutes() - 1); // 1 minute ago
+
+    return orders.filter(order => {
+      if (order.status === "CANCELLED") {
+        const orderDate = new Date(order.date);
+        return orderDate > oneMinuteAgo; // Keep only cancelled orders from last 1 minute
+      }
+      return true; // Keep all non-cancelled orders
+    });
+  };
+
+  // Helper to get product details from order or cart
+  const getProductDetails = (prod: any) => {
+    if (prod.product?.name && prod.product?.thumbnail) return prod.product;
+    return { name: prod.product?._id || prod.product || 'Unknown', thumbnail: undefined, price: prod.price };
   };
 
   const loadOrderData = async () => {
@@ -115,7 +146,7 @@ const Orders = () => {
             order.products.forEach((item: any) => {
               allProductOrders.push({
                 orderId: order._id,
-                product: item.product,
+                product: typeof item.product === 'string' ? { _id: item.product } : item.product,
                 price: item.price,
                 quantity: item.quantity,
                 date: order.updatedAt,
@@ -133,12 +164,27 @@ const Orders = () => {
                 price: service.price,
                 scheduledFor: order.updatedAt,
                 status: order.status,
-                paymentStatus: order.paymentDetails?.paidAt ? 'PAID' : 'PENDING'
+                paymentStatus: order.paymentDetails?.paidAt ? 'PAID' : 'PENDING',
+                remarks: order.remarks,
+                userLocation: order.userLocation,
+                OTP: order.OTP
               });
             });
           }
         });
-        setOrderData(allProductOrders);
+        // Filter out old cancelled orders before setting the state
+        const filteredOrders = filterOutOldCancelledOrders(allProductOrders);
+        // Fetch product details for every product order (like CartContext)
+        const ordersWithDetails = await Promise.all(filteredOrders.map(async (order) => {
+          const productId = order.product?._id || order.product;
+          try {
+            const res = await axios.get(`${API_BASE_URL}/api/products/${productId}`);
+            return { ...order, product: res.data.product };
+          } catch {
+            return order;
+          }
+        }));
+        setOrderData(ordersWithDetails);
         setServiceData(allServiceOrders.reverse());
       }
     } catch (error: any) {
@@ -153,45 +199,65 @@ const Orders = () => {
   };
 
   const handleCancelOrder = async (orderId: string) => {
-    try {
-      console.log('Attempting to cancel order:', orderId);
-      const response = await axios.post(
-        `${API_BASE_URL}/api/order/cancel`,
-        { orderId },
-        { 
-          headers: { 
-            Authorization: sessionId,
-            'Content-Type': 'application/json'
-          } 
+    // Show confirmation popup
+    Alert.alert(
+      "Cancel Order",
+      "Are you sure you want to cancel this order?",
+      [
+        {
+          text: "No",
+          style: "cancel"
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              console.log('Attempting to cancel order:', orderId);
+              const response = await axios.post(
+                `${API_BASE_URL}/api/order/cancel`,
+                { orderId },
+                { 
+                  headers: { 
+                    Authorization: sessionId,
+                    'Content-Type': 'application/json'
+                  } 
+                }
+              );
+
+              console.log('Cancel order response:', response.data);
+
+              if (response.data.success) {
+                setOrderData(prevOrders => 
+                  prevOrders.filter(order => order.orderId !== orderId)
+                );
+                
+                // Show success message
+                Alert.alert(
+                  "Success",
+                  "Your order has been cancelled successfully",
+                  [{ text: "OK" }]
+                );
+                
+                loadOrderData();
+              } else {
+                Alert.alert(
+                  "Error",
+                  response.data.message || "Failed to cancel order",
+                  [{ text: "OK" }]
+                );
+              }
+            } catch (error: any) {
+              console.error('Full error:', error);
+              Alert.alert(
+                "Error",
+                error.response?.data?.message || "Failed to cancel order",
+                [{ text: "OK" }]
+              );
+            }
+          }
         }
-      );
-
-      console.log('Cancel order response:', response.data);
-
-      if (response.data.success) {
-        setOrderData(prevOrders => 
-          prevOrders.filter(order => order.orderId !== orderId)
-        );
-        
-        Toast.show({
-          type: "success",
-          text1: "Order cancelled successfully",
-        });
-        
-        loadOrderData();
-      } else {
-        Toast.show({
-          type: "error",
-          text1: response.data.message || "Failed to cancel order",
-        });
-      }
-    } catch (error: any) {
-      console.error('Full error:', error);
-      Toast.show({
-        type: "error",
-        text1: error.response?.data?.message || "Failed to cancel order",
-      });
-    }
+      ]
+    );
   };
 
   const handleCancelService = async (serviceItem: ServiceItem) => {
@@ -275,6 +341,15 @@ const Orders = () => {
       loadOrderData();
     }, [sessionId])
   );
+
+  // Add periodic check for cancelled orders
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOrderData(prevOrders => filterOutOldCancelledOrders(prevOrders));
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (ordersLoading) {
   return (
@@ -361,19 +436,22 @@ const Orders = () => {
         </View>
       </View>
       {/* List all products in this order */}
-      {item.products.map((prod: any, idx: number) => (
-        <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
-          <Image
-            source={{ uri: prod.product?.thumbnail || prod.thumbnail || "https://via.placeholder.com/100" }}
-            style={styles.productImage}
-          />
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.productName}>{prod.product?.name || prod.name}</Text>
-            <Text style={styles.detailValue}>Price: ₹{prod.price}</Text>
-            <Text style={styles.detailValue}>Quantity: {prod.quantity}</Text>
+      {item.products.map((prod: any, idx: number) => {
+        const details = getProductDetails(prod);
+        return (
+          <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+            <Image
+              source={{ uri: details.thumbnail || "https://via.placeholder.com/100" }}
+              style={styles.productImage}
+            />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.productName}>{details.name}</Text>
+              <Text style={styles.detailValue}>Price: ₹{prod.price}</Text>
+              <Text style={styles.detailValue}>Quantity: {prod.quantity}</Text>
+            </View>
           </View>
-        </View>
-      ))}
+        );
+      })}
       {/* Actions (Track/Cancel) for the order */}
       <View style={styles.actionButtons}>
         <TouchableOpacity style={styles.trackButton}>
@@ -576,7 +654,7 @@ const Orders = () => {
             contentContainerStyle={styles.listContainer}
           />
         )
-      ) : serviceCart.length === 0 ? (
+      ) : serviceData.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="construct-outline" size={64} color="#9CA3AF" />
           <Text style={styles.emptyTitle}>No service orders yet</Text>
@@ -585,14 +663,14 @@ const Orders = () => {
           </Text>
           <TouchableOpacity
             style={styles.shopButton}
-            onPress={() => router.replace("/Collection")}
+            onPress={() => router.replace("/chillMart")}
           >
             <Text style={styles.shopButtonText}>Book a service</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={serviceCart}
+          data={serviceData}
           renderItem={renderServiceOrder}
           keyExtractor={(item: ServiceItem) => item._id}
           contentContainerStyle={styles.listContainer}

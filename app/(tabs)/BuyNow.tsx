@@ -25,7 +25,7 @@ const BuyNow = () => {
 	const params = useLocalSearchParams();
 	const insets = useSafeAreaInsets();
 	const { isAuthenticated, user, sessionId } = useAuth();
-	const { addToCart } = useCart();
+	const { cart, cartAmount } = useCart();
 	const [loading, setLoading] = useState(false);
 	const [method, setMethod] = useState('cod');
 	const [formData, setFormData] = useState({
@@ -41,7 +41,12 @@ const BuyNow = () => {
 
 	// Parse product information from route params
 	const product = params.product ? JSON.parse(params.product as string) : null;
+	const isCartOrder = params.isCartOrder === 'true';
 	const productAmount = product ? product.price * (1 - product.discount) : 0;
+	const shippingFee = 299;
+
+	// Calculate total amount based on whether it's a cart order or single product
+	const totalAmount = isCartOrder ? cartAmount + shippingFee : productAmount + shippingFee;
 
 	const [pincodeLoading, setPincodeLoading] = useState(false);
 	const [cityOptions, setCityOptions] = useState([]);
@@ -200,16 +205,20 @@ const BuyNow = () => {
 				orderFirstName: formData.firstName,
 				orderLastName: formData.lastName,
 				orderType: "product",
-				products: [
-					{
+				products: isCartOrder 
+					? (cart?.items ?? []).map(item => ({
+						product: item._id,
+						quantity: item.quantity,
+						price: parseInt(item.price.toString()),
+					}))
+					: [{
 						product: product._id,
 						quantity: 1,
 						price: parseInt(product.price.toString()),
-					}
-				],
-				deliveryCharge: 299,
+					}],
+				deliveryCharge: shippingFee,
 				services: [],
-				totalAmount: productAmount + 299,
+				totalAmount: totalAmount,
 				status: "ORDERED",
 				paymentDetails: {
 					method: method,
@@ -401,7 +410,26 @@ const BuyNow = () => {
 
 				{/* Order Summary */}
 				<View style={styles.section}>
-					<CartTotal amount={productAmount} />
+					<Text style={styles.sectionTitle}>Order Summary</Text>
+					{isCartOrder ? (
+						<View>
+							<View style={styles.summaryRow}>
+								<Text style={styles.summaryLabel}>Items ({cart?.items?.length ?? 0})</Text>
+								<Text style={styles.summaryValue}>₹{cartAmount?.toLocaleString?.() ?? '0'}</Text>
+							</View>
+							<View style={styles.summaryRow}>
+								<Text style={styles.summaryLabel}>Delivery Charges</Text>
+								<Text style={styles.summaryValue}>₹{shippingFee.toLocaleString()}</Text>
+							</View>
+							<View style={styles.divider} />
+							<View style={styles.summaryRow}>
+								<Text style={styles.summaryTotal}>Total Amount</Text>
+								<Text style={styles.summaryTotal}>₹{totalAmount.toLocaleString()}</Text>
+							</View>
+						</View>
+					) : (
+						<CartTotal amount={productAmount} />
+					)}
 				</View>
 
 				{/* Place Order Button */}
@@ -541,6 +569,30 @@ const styles = StyleSheet.create({
 		color: '#FFFFFF',
 		fontSize: 18,
 		fontWeight: 'bold',
+	},
+	summaryRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		marginBottom: 12,
+	},
+	summaryLabel: {
+		fontSize: 16,
+		color: '#666666',
+	},
+	summaryValue: {
+		fontSize: 16,
+		color: '#333333',
+		fontWeight: '500',
+	},
+	summaryTotal: {
+		fontSize: 18,
+		color: '#333333',
+		fontWeight: 'bold',
+	},
+	divider: {
+		height: 1,
+		backgroundColor: '#DDDDDD',
+		marginVertical: 12,
 	},
 });
 

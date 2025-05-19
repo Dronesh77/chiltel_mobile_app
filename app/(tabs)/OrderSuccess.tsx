@@ -25,62 +25,77 @@ const OrderSuccess = () => {
   const [loading, setLoading] = useState(!!orderId);
   const { sessionId, user } = useAuth();
 
+  // Helper to fetch product details for each product in the order
+  const fetchOrderProductDetails = async (order: any) => {
+    if (!order?.products) return order;
+    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+    const productsWithDetails = await Promise.all(order.products.map(async (item: any) => {
+      const productId = item.product?._id || item.product || item._id;
+      try {
+        const res = await axios.get(`${API_BASE_URL}/api/products/${productId}`);
+        return { ...item, product: res.data.product };
+      } catch {
+        return item;
+      }
+    }));
+    return { ...order, products: productsWithDetails };
+  };
+
   useEffect(() => {
     if (orderId && sessionId && user?.phoneNumber) {
       setLoading(true);
-      console.log('Fetching order with phone:', user.phoneNumber);
       axios.post(
         `${process.env.EXPO_PUBLIC_API_URL}/api/order/userorders`,
         { phone: user.phoneNumber },
         { headers: { Authorization: sessionId } }
       )
-        .then(res => {
-          console.log('Order response:', res.data);
+        .then(async res => {
           if (res.data.success && res.data.orders) {
             const found = res.data.orders.find((o: any) => o._id === orderId);
-            console.log('Found order:', found);
-            setOrder(found || null);
+            if (found) {
+              const orderWithDetails = await fetchOrderProductDetails(found);
+              setOrder(orderWithDetails);
+            } else {
+              setOrder(null);
+            }
           }
         })
         .catch((error) => {
-          console.error('Error fetching order:', error.response?.data || error);
           setOrder(null);
         })
         .finally(() => setLoading(false));
     }
   }, [orderId, sessionId, user?.phoneNumber]);
 
+  // Countdown and navigation logic
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    
-    const startCountdown = () => {
-      timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            router.replace(`/Orders${orderId ? `?orderId=${orderId}` : ''}`);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      // Animate progress bar
-      Animated.timing(progressAnim, {
-        toValue: 0,
-        duration: 20000,
-        useNativeDriver: false,
-      }).start();
-    };
-
-    startCountdown();
-
+    timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    // Animate progress bar
+    Animated.timing(progressAnim, {
+      toValue: 0,
+      duration: 20000,
+      useNativeDriver: false,
+    }).start();
     return () => {
-      if (timer) {
-        clearInterval(timer);
-      }
+      if (timer) clearInterval(timer);
     };
   }, [orderId]);
+
+  // Navigate when countdown reaches 0
+  useEffect(() => {
+    if (countdown === 0) {
+      router.replace(`/Orders${orderId ? `?orderId=${orderId}` : ''}`);
+    }
+  }, [countdown, orderId]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -94,7 +109,7 @@ const OrderSuccess = () => {
           </View>
         </View>
 
-        {/* Order Number */}
+        {/* Order Number - always show */}
         <View style={styles.orderNumberContainer}>
           <Text style={styles.orderNumber}>Order #{orderId || '12345678'}</Text>
         </View>
@@ -131,7 +146,7 @@ const OrderSuccess = () => {
             <View style={{ marginTop: 12 }}>
               <Text style={[styles.detailLabel, { marginBottom: 4 }]}>Products:</Text>
               {order.products?.map((item: any, idx: number) => (
-                <Text key={idx} style={styles.detailValue}>- {item.name || item.product?.name} x {item.quantity}</Text>
+                <Text key={idx} style={styles.detailValue}>- {item.product?.name || item.name} x {item.quantity}</Text>
               ))}
             </View>
           </View>

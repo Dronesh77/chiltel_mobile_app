@@ -244,11 +244,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isVisible, onClose, onBook,
       return;
     }
 
-    Toast.show({
-      type: 'info',
-      text1: 'Initiating Payment',
-    });
-
+    setIsLoading(true);
     try {
       const totalPrice = scheduleService?.services.reduce(
         (sum, service) => sum + service.price * service.count, 0
@@ -258,13 +254,17 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isVisible, onClose, onBook,
         user: user?.id,
         orderType: "service",
         products: [],
-        services: [],
+        services: scheduleService?.services.map(service => ({
+          serviceId: service.serviceId,
+          count: service.count,
+          price: service.price
+        })) || [],
         totalAmount: (totalPrice * 1.18).toFixed(2),
-        status: "ORDERED",
+        status: "REQUESTED",
         paymentDetails: {
           method: "Razorpay",
           transactionId: "",
-          paidAt: new Date(),
+          paidAt: null,
         },
         address: {
           street: address.street,
@@ -272,6 +272,8 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isVisible, onClose, onBook,
           state: address.state,
           zipCode: address.zipCode,
         },
+        remarks,
+        scheduledFor: new Date(`${selectedDay}T${selectedTime}:00`).toISOString(),
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -285,55 +287,44 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ isVisible, onClose, onBook,
       );
 
       if (responseRazorpay.data.success) {
-        // Implement Razorpay for React Native
-        // This would require a native module integration
-        // For this example, we'll simulate a successful payment
-        handleScheduleConfirm("simulated_payment_id");
+        // Here you would typically integrate with Razorpay
+        // For now, we'll simulate a successful payment
+        const paymentId = "simulated_payment_id";
+        
+        // Update the order with payment details
+        const updateResponse = await axios.post(
+          `${backendUrl}/api/order/updatepayment`,
+          {
+            orderId: responseRazorpay.data.orderId,
+            paymentId,
+            status: "PAID"
+          },
+          {
+            headers: { Authorization: sessionId }
+          }
+        );
+
+        if (updateResponse.data.success) {
+          Toast.show({
+            type: 'success',
+            text1: 'Service booked successfully',
+          });
+          onBook();
+          navigation.navigate('Orders', { view: 'services' });
+        } else {
+          throw new Error('Failed to update payment status');
+        }
+      } else {
+        throw new Error('Failed to create order');
       }
     } catch (error: any) {
+      console.error('Payment error:', error);
       Toast.show({
         type: 'error',
         text1: error.message || 'Payment failed',
       });
-    }
-  };
-
-  const handleScheduleConfirm = async (paymentId: string) => {
-    try {
-      const time24hr = selectedTime;
-      const scheduledDateTime = new Date(`${selectedDay}T${time24hr}:00`).toISOString();
-      
-      const totalPrice = scheduleService?.services.reduce(
-        (sum, service) => sum + service.price * service.count, 0
-      ) || 0;
-
-      const serviceRequest = {
-        user: user?.id,
-        services: scheduleService?.services || [],
-        userLocation: {
-          type: "Point",
-          coordinates: [0.0, 0.0],
-          address: `${address.street}, ${address.city}, ${address.state}, ${address.zipCode}`,
-        },
-        scheduledFor: scheduledDateTime,
-        remarks,
-        totalPrice,
-        paymentId,
-      };
-
-      await addToServiceCart(scheduleService?.services || [], serviceRequest);
-      onBook();
-      
-      Toast.show({
-        type: 'success',
-        text1: 'Service scheduled successfully',
-      });
-    } catch (err) {
-      console.error("Error scheduling service:", err);
-      Toast.show({
-        type: 'error',
-        text1: 'An error occurred while scheduling the service',
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
