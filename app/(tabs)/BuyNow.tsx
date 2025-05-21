@@ -87,6 +87,7 @@ const BuyNow = () => {
 	const [pincodeLoading, setPincodeLoading] = useState(false);
 	const [cityOptions, setCityOptions] = useState([]);
 	const [showCityDropdown, setShowCityDropdown] = useState(false);
+	const [allowManualEntry, setAllowManualEntry] = useState(false);
 
 	const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
@@ -134,6 +135,7 @@ const BuyNow = () => {
 				}));
 
 				setCityOptions(cityOptions);
+				setAllowManualEntry(false);
 
 				if (cityOptions.length === 1) {
 					setFormData((prev) => ({
@@ -159,6 +161,7 @@ const BuyNow = () => {
 			} else {
 				setShowCityDropdown(false);
 				setCityOptions([]);
+				setAllowManualEntry(true);
 				Toast.show({
 					type: 'error',
 					text1: 'No information found for this pincode. Please enter details manually.',
@@ -166,6 +169,9 @@ const BuyNow = () => {
 			}
 		} catch (error) {
 			console.error('Error in pincode lookup:', error);
+			setShowCityDropdown(false);
+			setCityOptions([]);
+			setAllowManualEntry(true);
 			Toast.show({
 				type: 'error',
 				text1: 'Failed to fetch location details. Please enter manually.',
@@ -278,7 +284,14 @@ const BuyNow = () => {
 					type: 'success',
 					text1: 'Order placed successfully!',
 				});
-				router.replace(`/OrderSuccess?orderId=${response.data.order?._id}`);
+				router.replace({
+					pathname: '/OrderSuccess',
+					params: {
+						orderId: response.data.order?._id,
+						paymentMethod: method,
+						...(params.cartItems && { cartItems: params.cartItems }),
+					}
+				});
 			} else {
 				Toast.show({
 					type: 'error',
@@ -517,9 +530,10 @@ const BuyNow = () => {
 						<View style={[styles.inputContainer, { flex: 1 }]}>
 							<Text style={styles.label}>State</Text>
 							<TextInput
-								style={[styles.input, styles.disabledInput]}
+								style={[styles.input, !allowManualEntry && styles.disabledInput]}
 								value={formData.state}
-								editable={false}
+								onChangeText={(value) => onChangeHandler('state', value)}
+								editable={allowManualEntry}
 								placeholder="State"
 							/>
 						</View>
@@ -542,9 +556,10 @@ const BuyNow = () => {
 								</ScrollView>
 							) : (
 								<TextInput
-									style={[styles.input, styles.disabledInput]}
+									style={[styles.input, !allowManualEntry && styles.disabledInput]}
 									value={formData.city}
-									editable={false}
+									onChangeText={(value) => onChangeHandler('city', value)}
+									editable={allowManualEntry}
 									placeholder="City"
 								/>
 							)}
