@@ -192,7 +192,10 @@ const CartScreen = () => {
               <TouchableOpacity
                 onPress={() => router.push({
                   pathname: '/BuyNow',
-                  params: { isCartOrder: 'true' }
+                  params: { 
+                    isCartOrder: 'true',
+                    cartItems: JSON.stringify(cart.items)
+                  }
                 })}
                 className="bg-blue-600 rounded-lg p-4 flex-row justify-center items-center mt-6"
               >
