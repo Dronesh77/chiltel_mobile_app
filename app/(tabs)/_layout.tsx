@@ -174,21 +174,7 @@ const Layout = () => {
             }}
           />
           <Tabs.Screen
-            name="checkout"
-            options={{
-              href: null,
-              headerShown: false,
-            }}
-          />
-          <Tabs.Screen
             name="OrderSuccess"
-            options={{
-              href: null,
-              headerShown: false,
-            }}
-          />
-          <Tabs.Screen
-            name="PlaceOrder"
             options={{
               href: null,
               headerShown: false,

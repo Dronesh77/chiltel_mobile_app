@@ -25,6 +25,9 @@ const OrderSuccess = () => {
   const [loading, setLoading] = useState(!!orderId);
   const { sessionId, user } = useAuth();
 
+  // Get cart items from params if they exist
+  const cartItems = params.cartItems;
+
   // Helper to fetch product details for each product in the order
   const fetchOrderProductDetails = async (order: any) => {
     if (!order?.products) return order;
@@ -93,9 +96,15 @@ const OrderSuccess = () => {
   // Navigate when countdown reaches 0
   useEffect(() => {
     if (countdown === 0) {
-      router.replace(`/Orders${orderId ? `?orderId=${orderId}` : ''}`);
+      router.replace({
+        pathname: '/Orders',
+        params: {
+          ...(orderId && { orderId: orderId }),
+          ...(cartItems && { cartItems: cartItems }), // Pass cartItems to Orders
+        }
+      });
     }
-  }, [countdown, orderId]);
+  }, [countdown, orderId, cartItems]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>

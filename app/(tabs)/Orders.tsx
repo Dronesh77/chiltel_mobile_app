@@ -56,6 +56,7 @@ interface ServiceItem {
   scheduledFor: string;
   status: string;
   paymentStatus: string;
+  paymentMethod: string;
   addedWorks?: Array<{
     description: string;
     price: number;
@@ -87,6 +88,25 @@ const Orders = () => {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const { cart } = useCart();
 
+  // Parse cart items from params if they exist
+  const cartItems = params.cartItems ? JSON.parse(params.cartItems as string) : null;
+
+  // If cart items exist, add them to orderData
+  useEffect(() => {
+    if (cartItems) {
+      const newOrders = cartItems.map((item: any) => ({
+        orderId: 'pending',
+        product: item,
+        price: item.price,
+        quantity: item.quantity,
+        date: new Date().toISOString(),
+        status: 'PENDING',
+        paymentMethod: 'Pending'
+      }));
+      setOrderData(prevOrders => [...newOrders, ...prevOrders]);
+    }
+  }, [cartItems]);
+
   const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
   if (!API_BASE_URL) {
     throw new Error('EXPO_PUBLIC_API_URL is not set. Please check your .env file and restart Expo.');
@@ -114,6 +134,20 @@ const Orders = () => {
         return orderDate > oneMinuteAgo; // Keep only cancelled orders from last 1 minute
       }
       return true; // Keep all non-cancelled orders
+    });
+  };
+
+  // Add function to filter out old cancelled service orders
+  const filterOutOldCancelledServices = (services: ServiceItem[]) => {
+    const oneMinuteAgo = new Date();
+    oneMinuteAgo.setMinutes(oneMinuteAgo.getMinutes() - 1); // 1 minute ago
+
+    return services.filter(service => {
+      if (service.status === "CANCELLED") {
+        const serviceDate = new Date(service.scheduledFor);
+        return serviceDate > oneMinuteAgo; // Keep only cancelled services from last 1 minute
+      }
+      return true; // Keep all non-cancelled services
     });
   };
 
@@ -155,20 +189,23 @@ const Orders = () => {
               });
             });
           }
-          // Extract service orders
+          // Extract service orders and group them by order
           if (order.services && order.services.length > 0) {
-            order.services.forEach((service: any) => {
-              allServiceOrders.push({
-                _id: service._id,
-                services: [service],
-                price: service.price,
-                scheduledFor: order.updatedAt,
-                status: order.status,
-                paymentStatus: order.paymentDetails?.paidAt ? 'PAID' : 'PENDING',
-                remarks: order.remarks,
-                userLocation: order.userLocation,
-                OTP: order.OTP
-              });
+            // Create one ServiceItem for the whole order
+            allServiceOrders.push({
+              _id: order._id, // Using order ID as the unique ID for the ServiceItem
+              services: order.services, // Include the entire array of services from the order
+              price: order.totalAmount, // Use total amount from the order
+              scheduledFor: order.scheduledFor || order.updatedAt, // Use scheduledFor if available, otherwise updatedAt
+              status: order.status, // Use order status
+              paymentStatus: order.paymentDetails?.paidAt ? 'PAID' : 'PENDING', // Use payment status from order
+              remarks: order.remarks,
+              userLocation: order.userLocation,
+              OTP: order.OTP,
+              addedWorks: order.addedWorks, // Include added works if any
+              additionalWorkPayment: order.additionalWorkPayment, // Include additional work payment status
+              completedAt: order.completedAt, // Include completed at date
+              paymentMethod: order.paymentDetails?.method || 'N/A',
             });
           }
         });
@@ -261,29 +298,65 @@ const Orders = () => {
   };
 
   const handleCancelService = async (serviceItem: ServiceItem) => {
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/order/cancelservice`,
-        { serviceId: serviceItem._id },
-        { headers: { Authorization: sessionId } }
-      );
+    // Show confirmation popup
+    Alert.alert(
+      "Cancel Service",
+      "Are you sure you want to cancel this service?",
+      [
+        {
+          text: "No",
+          style: "cancel"
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              console.log('Attempting to cancel service:', serviceItem._id);
+              const response = await axios.post(
+                `${API_BASE_URL}/api/order/cancel`,
+                { orderId: serviceItem._id },
+                { 
+                  headers: { 
+                    Authorization: sessionId,
+                    'Content-Type': 'application/json'
+                  } 
+                }
+              );
 
-      if (response.data.success) {
-        Toast.show({
-          type: "success",
-          text1: "Service cancelled successfully",
-        });
-        setServiceData((prevServiceData: ServiceItem[]) =>
-          prevServiceData.filter((service: ServiceItem) => service._id !== serviceItem._id)
-        );
-      }
-    } catch (error) {
-      Toast.show({
-        type: "error",
-        text1: "Something went wrong",
-      });
-      console.error("Error while cancelling service: ", error);
-    }
+              console.log('Cancel service response:', response.data);
+
+              if (response.data.success) {
+                setServiceData(prevServiceData => 
+                  prevServiceData.filter(service => service._id !== serviceItem._id)
+                );
+                
+                // Show success message
+                Alert.alert(
+                  "Success",
+                  "Your service has been cancelled successfully",
+                  [{ text: "OK" }]
+                );
+                
+                loadOrderData();
+              } else {
+                Alert.alert(
+                  "Error",
+                  response.data.message || "Failed to cancel service",
+                  [{ text: "OK" }]
+                );
+              }
+            } catch (error: any) {
+              console.error('Full error:', error);
+              Alert.alert(
+                "Error",
+                error.response?.data?.message || "Failed to cancel service",
+                [{ text: "OK" }]
+              );
+            }
+          }
+        }
+      ]
+    );
   };
 
   const handlePayment = (serviceItem: ServiceItem) => {
@@ -342,10 +415,11 @@ const Orders = () => {
     }, [sessionId])
   );
 
-  // Add periodic check for cancelled orders
+  // Update the periodic check useEffect to handle both product and service orders
   useEffect(() => {
     const interval = setInterval(() => {
       setOrderData(prevOrders => filterOutOldCancelledOrders(prevOrders));
+      setServiceData(prevServices => filterOutOldCancelledServices(prevServices));
     }, 10000); // Check every 10 seconds
 
     return () => clearInterval(interval);
@@ -468,133 +542,121 @@ const Orders = () => {
 
   const renderServiceOrder = ({ item }: { item: ServiceItem }) => (
     <View style={styles.serviceItem}>
-      <TouchableOpacity
-        style={styles.serviceHeader}
-        onPress={() => toggleRow(item._id)}
-      >
+      <View style={styles.orderHeader}>
+        <Text style={styles.productName}>Service #{item._id?.slice(-6)}</Text>
+        <Text style={styles.orderNumber}>{new Date(item.scheduledFor).toLocaleDateString()}</Text>
+        <View style={[styles.statusBadge, {
+          backgroundColor:
+            item.status === "CREATED"
+              ? "#DBEAFE"
+              : item.status === "IN_PROGRESS"
+              ? "#FEF3C7"
+              : item.status === "COMPLETED"
+              ? "#D1FAE5"
+              : item.status === "CANCELLED"
+              ? "#FEE2E2"
+              : "#F3F4F6",
+        }]}
+        >
+          <Text style={[styles.statusText, {
+            color:
+              item.status === "CREATED"
+                ? "#1E40AF"
+                : item.status === "IN_PROGRESS"
+                ? "#92400E"
+                : item.status === "COMPLETED"
+                ? "#065F46"
+                : item.status === "CANCELLED"
+                ? "#991B1B"
+                : "#374151",
+          }]}
+          >
+            {item.status}
+          </Text>
+        </View>
+        <View style={[styles.paymentBadge, {
+          backgroundColor:
+            item.paymentStatus === "PENDING"
+              ? "#FEF3C7"
+              : item.paymentStatus === "PAID"
+              ? "#D1FAE5"
+              : "#F3F4F6",
+        }]}
+        >
+          <Text style={[styles.paymentText, {
+            color:
+              item.paymentStatus === "PENDING"
+                ? "#92400E"
+                : item.paymentStatus === "PAID"
+                ? "#065F46"
+                : "#374151",
+          }]}
+          >
+            {item.paymentStatus === "PENDING" ? "Pending" : 
+             item.paymentMethod === "cod" ? "Cash on Delivery" :
+             item.paymentMethod === "razorpay" ? "Online Payment" :
+             item.paymentMethod === "stripe" ? "Online Payment" :
+             item.paymentMethod || "N/A"}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.serviceContent}>
+        <Image
+          source={{ uri: "https://via.placeholder.com/64?text=Service" }}
+          style={styles.productImage}
+        />
+        
         <View style={styles.serviceInfo}>
           <Text style={styles.serviceName}>
-            {item.services.map((service) => service.serviceId.name).join(", ")}
+            {item.services.map((service: Service) => service.serviceId?.name).join(", ")}
           </Text>
-          <Text style={styles.serviceDescription}>
-            {item.services[0].serviceId.description}
-          </Text>
-        </View>
-        <View style={styles.serviceMeta}>
-          <Text style={styles.servicePrice}>₹{item.price}</Text>
-          <Text style={styles.serviceDate}>
-            {new Date(item.scheduledFor).toLocaleDateString()}
-          </Text>
-          <View
-            style={[
-              styles.serviceStatus,
-              {
-                backgroundColor:
-                  item.status === "CREATED"
-                    ? "#DBEAFE"
-                    : item.status === "IN_PROGRESS"
-                    ? "#FEF3C7"
-                    : item.status === "COMPLETED"
-                    ? "#D1FAE5"
-                    : item.status === "CANCELLED"
-                    ? "#FEE2E2"
-                    : "#F3F4F6",
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.statusText,
-                {
-                  color:
-                    item.status === "CREATED"
-                      ? "#1E40AF"
-                      : item.status === "IN_PROGRESS"
-                      ? "#92400E"
-                      : item.status === "COMPLETED"
-                      ? "#065F46"
-                      : item.status === "CANCELLED"
-                      ? "#991B1B"
-                      : "#374151",
-                },
-              ]}
-            >
-              {item.status}
+
+          {item.services.map((service: Service, index: number) => (
+            <Text key={index} style={styles.detailValue}>
+              {service.serviceId?.name} (x{service.count || 1})
             </Text>
-          </View>
-        </View>
-        <Ionicons
-          name={expandedRow === item._id ? "chevron-up" : "chevron-down"}
-          size={24}
-          color="#6B7280"
-        />
-      </TouchableOpacity>
+          ))}
 
-      {expandedRow === item._id && (
-        <View style={styles.expandedContent}>
-          <View style={styles.serviceDetails}>
-            <Text style={styles.detailTitle}>Service Details</Text>
-            {item.services.map((service: Service) => (
-              <View key={service._id} style={styles.serviceDetailItem}>
-                <Text style={styles.serviceDetailName}>
-                                            {service.serviceId.name}
-                </Text>
-                <Text style={styles.serviceDetailDescription}>
-                  {service.serviceId.description}
-                </Text>
-                <View style={styles.serviceDetailMeta}>
-                  <Text style={styles.serviceDetailQuantity}>
-                    Quantity: {service.count}
-                  </Text>
-                  <Text style={styles.serviceDetailPrice}>
-                    Price: ₹{service.serviceId.price}
-                  </Text>
-                  <Text style={styles.serviceDetailDuration}>
-                    Duration: {service.serviceId.estimatedDuration}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-
+          <Text style={styles.detailValue}>Price: ₹{item.price}</Text>
+          <Text style={styles.detailValue}>Date: {new Date(item.scheduledFor).toLocaleDateString()}</Text>
+          
           {item.addedWorks && item.addedWorks.length > 0 && (
             <View style={styles.additionalWork}>
-              <View style={styles.additionalWorkHeader}>
-                <Text style={styles.additionalWorkTitle}>
-                  Additional Work (Total: ₹{calculateTotalAdditionalWork(item.addedWorks)})
-                </Text>
-                {item.additionalWorkPayment ? (
-                  <View style={styles.paidBadge}>
-                    <Text style={styles.paidText}>Paid</Text>
-                  </View>
-                ) : (
-                  <TouchableOpacity
-                    style={styles.payButton}
-                    onPress={() => handleAdditionalWorkPayment(item._id)}
-                  >
-                    <Text style={styles.payButtonText}>Pay in Cash</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              <Text style={styles.additionalWorkTitle}>
+                Additional Work: ₹{calculateTotalAdditionalWork(item.addedWorks)}
+              </Text>
               {item.addedWorks.map((work: { description: string; price: number }, idx: number) => (
-                <View key={idx} style={styles.workItem}>
-                  <Text style={styles.workDescription}>{work.description}</Text>
-                  <Text style={styles.workPrice}>₹{work.price}</Text>
-                </View>
+                <Text key={idx} style={styles.detailValue}>
+                  {work.description} - ₹{work.price}
+                </Text>
               ))}
             </View>
           )}
-
-          {item.paymentStatus === "PENDING" && (
-            <TouchableOpacity
-              style={styles.paymentButton}
-              onPress={() => handlePayment(item)}
-            >
-              <Text style={styles.paymentButtonText}>Pay Now</Text>
-            </TouchableOpacity>
-          )}
         </View>
-      )}
+      </View>
+
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.trackButton}>
+          <Text style={styles.trackButtonText}>Track</Text>
+        </TouchableOpacity>
+        {item.status !== "CANCELLED" && item.status !== "COMPLETED" && (
+          <TouchableOpacity 
+            style={styles.cancelButton} 
+            onPress={() => handleCancelService(item)}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        )}
+        {item.paymentStatus === "PENDING" && (
+          <TouchableOpacity
+            style={styles.paymentButton}
+            onPress={() => handlePayment(item)}
+          >
+            <Text style={styles.paymentButtonText}>Pay Now</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 
@@ -843,9 +905,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  serviceHeader: {
+  serviceContent: {
     flexDirection: "row",
-    padding: 16,
     alignItems: "center",
   },
   serviceInfo: {
